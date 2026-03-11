@@ -2597,6 +2597,8 @@ void GCodeProcessor::finalize(bool post_process)
         }
     }
 
+    // Belt printer: preview coordinate transform placeholder (to be implemented in next cycle).
+
     calculate_time(m_result);
 
     // process the time blocks
@@ -3041,6 +3043,14 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // ; Z_HEIGHT:
     if (boost::starts_with(comment, " Z_HEIGHT:")) {
         m_print_z = get_z_height(comment);
+        return;
+    }
+
+    // Belt printer angle detection from G-code header comment.
+    if (boost::starts_with(comment, " belt_printer_angle = ")) {
+        try {
+            m_result.belt_printer_angle = std::stof(std::string(comment.substr(22)));
+        } catch (...) {}
         return;
     }
 
