@@ -79,6 +79,14 @@ set(lisbslic3r_sources
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
+    BeltGCode.cpp
+    BeltGCode.hpp
+    BeltGCodeWriter.cpp
+    BeltGCodeWriter.hpp
+    BeltSliceStrategy.cpp
+    BeltSliceStrategy.hpp
+    BeltTransform.cpp
+    BeltTransform.hpp
     Brim.cpp
     BrimEarsPoint.hpp
     Brim.hpp
@@ -417,6 +425,8 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
+    Support/BeltFloorContext.cpp
+    Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
