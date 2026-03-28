@@ -125,6 +125,12 @@ public:
     void set_is_first_layer(bool bval) { m_is_first_layer = bval; }
     GCodeFlavor get_gcode_flavor() const { return config.gcode_flavor; }
 
+    // Axis remap: permute/negate/reverse axes in G-code output.
+    // Works standalone (without belt mode) for printers with non-standard axis conventions.
+    void set_axis_remap(int rx, int ry, int rz);
+    void set_build_volume_max(const Vec3d &max);
+    bool has_axis_remap() const;
+
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
 protected:
@@ -140,6 +146,15 @@ protected:
     double          m_current_speed;
 
     virtual std::string _travel_to_z(double z, const std::string &comment);
+
+    // Axis remap state — accessible to subclasses.
+    int             m_remap_x = 0;  // RemapAxis: 0=+X, 1=+Y, 2=+Z, 3=-X, etc.
+    int             m_remap_y = 1;
+    int             m_remap_z = 2;
+    Vec3d           m_build_vol_max = Vec3d::Zero();
+
+    // Apply axis remap to a point. Returns pos unchanged if remap is identity.
+    Vec3d apply_axis_remap(const Vec3d &pos) const;
 
 private:
 	// Extruders are sorted by their ID, so that binary search is possible.
