@@ -126,7 +126,6 @@ enum class WallSequence {
 // Orca
 enum class WallDirection
 {
-    Auto,
     CounterClockwise,
     Clockwise,
     Count,
@@ -1491,10 +1490,12 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionEnum<RemapAxis>,  preslice_remap_x))
     ((ConfigOptionEnum<RemapAxis>,  preslice_remap_y))
     ((ConfigOptionEnum<RemapAxis>,  preslice_remap_z))
+    ((ConfigOptionBool,             preslice_remap_global))
     ((ConfigOptionEnum<RemapAxis>,  gcode_remap_x))
     ((ConfigOptionEnum<RemapAxis>,  gcode_remap_y))
     ((ConfigOptionEnum<RemapAxis>,  gcode_remap_z))
     ((ConfigOptionBool,                 gcode_back_transform))
+    ((ConfigOptionBool,                 belt_preslice_global))
     ((ConfigOptionBool,                 belt_origin_snap_x))
     ((ConfigOptionFloat,                belt_origin_offset_x))
     ((ConfigOptionBool,                 belt_origin_snap_y))
@@ -1644,6 +1645,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionString,             thumbnails))
     // BBS: move from PrintObjectConfig
     ((ConfigOptionBool, independent_support_layer_height))
+    ((ConfigOptionBool,               combine_brims))
     // SoftFever
     ((ConfigOptionPercents,            filament_shrink))
     ((ConfigOptionPercents,            filament_shrinkage_compensation_z))

@@ -263,7 +263,6 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WallSequence)
 
 //Orca
 static t_config_enum_values s_keys_map_WallDirection{
-    { "auto", int(WallDirection::Auto) },
     { "ccw",  int(WallDirection::CounterClockwise) },
     { "cw",   int(WallDirection::Clockwise)},
 };
@@ -1648,6 +1647,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("combine_brims", coBool);
+    def->label = L("Combine brims");
+    def->category = L("Support");
+    def->tooltip  = L("Combine multiple brims into one when they are close to each other. This can improve brim adhesion.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("brim_ears", coBool);
     def->label = L("Brim ears");
     def->category = L("Support");
@@ -2073,16 +2079,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wall_direction", coEnum);
     def->label = L("Wall loop direction");
     def->category = L("Quality");
-    def->tooltip = L("The direction which the wall loops are extruded when looking down from the top.\n\nBy default all walls are extruded in counter-clockwise, unless Reverse on even is enabled. Set this to any option other than Auto will force the wall direction regardless of the Reverse on even.\n\nThis option will be disabled if spiral vase mode is enabled.");
+    def->tooltip = L("The direction which the contour wall loops are extruded when looking down from the top.\nHoles are printed in the opposite direction to the contour to maintain alignment with layers whose contour polygons are incomplete and change direction, also partially forming the contour of a hole.\n\nThis option will be disabled if spiral vase mode is enabled.");
     def->enum_keys_map = &ConfigOptionEnum<WallDirection>::get_enum_values();
-    def->enum_values.push_back("auto");
     def->enum_values.push_back("ccw");
     def->enum_values.push_back("cw");
-    def->enum_labels.push_back(L("Auto"));
     def->enum_labels.push_back(L("Counter clockwise"));
     def->enum_labels.push_back(L("Clockwise"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<WallDirection>(WallDirection::Auto));
+    def->set_default_value(new ConfigOptionEnum<WallDirection>(WallDirection::CounterClockwise));
 
     def = this->add("extruder", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
@@ -6152,6 +6156,16 @@ void PrintConfigDef::init_fff_params()
         "Rev mode mirrors relative to the build volume maximum. Default +Z: no change.",
         RemapAxis::PosZ);
 
+    def = this->add("preslice_remap_global", coBool);
+    def->label = L("Global");
+    def->category = L("Printable space");
+    def->tooltip = L("When enabled, the pre-slice axis remap accounts for each object's bed position. "
+                      "Without this, the remap is applied locally around each object's center, so "
+                      "objects at different positions don't get a position-dependent contribution. "
+                      "Mirrors the per-axis 'Global' option on belt mesh shears, but for the remap.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     add_belt_remap("gcode_remap_x", "X", "Which slicing axis maps to machine X in G-code output. Applied AFTER slicing, during G-code generation.", RemapAxis::PosX);
     add_belt_remap("gcode_remap_y", "Y", "Which slicing axis maps to machine Y in G-code output. Applied AFTER slicing, during G-code generation.", RemapAxis::PosY);
     add_belt_remap("gcode_remap_z", "Z", "Which slicing axis maps to machine Z in G-code output. Applied AFTER slicing, during G-code generation.", RemapAxis::PosZ);
@@ -6163,6 +6177,15 @@ void PrintConfigDef::init_fff_params()
                       "coordinates are in the machine's physical coordinate space. "
                       "Requires at least one shear axis with global mode enabled.");
     def->mode = comSimple;  // Visibility controlled by toggle_line in Tab.cpp
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("belt_preslice_global", coBool);
+    def->label = L("Global mesh transforms");
+    def->category = L("Printable space");
+    def->tooltip = L("When enabled, pre-slice belt transforms (remap, shear, scale) account for "
+                      "each object's bed position, producing correct machine coordinates without "
+                      "relying on origin snap. Each instance gets its own PrintObject.");
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     auto add_belt_origin_snap = [this](const char *key_snap, const char *key_offset,
@@ -7993,6 +8016,9 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "extruder_clearance_radius";
     } else if (opt_key == "machine_switch_extruder_time") {
         opt_key = "machine_tool_change_time";
+    }
+    else if (opt_key == "wall_direction" && value == "auto") {
+        value = "ccw";
     }
 
     // Ignore the following obsolete configuration keys:

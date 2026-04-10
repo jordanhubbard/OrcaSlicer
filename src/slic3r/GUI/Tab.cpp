@@ -2368,9 +2368,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("gap_fill_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
         optgroup->append_single_option_line("support_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
         optgroup->append_single_option_line("support_interface_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
+        optgroup->append_single_option_line("only_one_wall_first_layer", "quality_settings_wall_and_surfaces#only-one-wall");
         optgroup->append_single_option_line("only_one_wall_top", "quality_settings_wall_and_surfaces#only-one-wall");
         optgroup->append_single_option_line("min_width_top_surface", "quality_settings_wall_and_surfaces#threshold");
-        optgroup->append_single_option_line("only_one_wall_first_layer", "quality_settings_wall_and_surfaces#only-one-wall");
         optgroup->append_single_option_line("reduce_crossing_wall", "quality_settings_wall_and_surfaces#avoid-crossing-walls");
         optgroup->append_single_option_line("max_travel_detour_distance", "quality_settings_wall_and_surfaces#max-detour-length");
 
@@ -2658,6 +2658,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("brim_width", "others_settings_brim#width");
         optgroup->append_single_option_line("brim_object_gap", "others_settings_brim#brim-object-gap");
         optgroup->append_single_option_line("brim_use_efc_outline", "others_settings_brim#brim-use-efc-outline");
+        optgroup->append_single_option_line("combine_brims", "others_settings_brim#combine-brims");
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
         optgroup->append_single_option_line("brim_ears_detection_length", "others_settings_brim#ear-detection-radius");
 
@@ -4438,6 +4439,7 @@ void TabPrinter::build_fff()
             line.append_option(optgroup->get_option("preslice_remap_x"));
             line.append_option(optgroup->get_option("preslice_remap_y"));
             line.append_option(optgroup->get_option("preslice_remap_z"));
+            line.append_option(optgroup->get_option("preslice_remap_global"));
             optgroup->append_line(line);
         }
         {
@@ -4447,6 +4449,7 @@ void TabPrinter::build_fff()
             line.append_option(optgroup->get_option("gcode_remap_z"));
             optgroup->append_line(line);
         }
+        optgroup->append_single_option_line("belt_preslice_global");
         optgroup->append_single_option_line("gcode_back_transform");
         {
             Line line = { L("Origin snap X"), L("Snap object bbox min X to offset in G-code output") };
@@ -5327,22 +5330,29 @@ void TabPrinter::toggle_options()
         bool show_remap = is_belt || (m_mode >= comDevelop);
         for (auto el : {"preslice_remap_x", "gcode_remap_x", "gcode_back_transform"})
             toggle_line(el, show_remap);
+        toggle_line("belt_preslice_global", show_remap);
+
+        bool belt_global = is_belt && m_config->opt_bool("belt_preslice_global");
+
+        // preslice_remap_global: superseded by belt_preslice_global
+        toggle_option("preslice_remap_global", show_remap && !belt_global);
 
         // Gray out angle/from sub-options when their parent shear/scale mode is None.
+        // Per-axis globals are superseded when belt_preslice_global is on.
         auto sx = m_config->option<ConfigOptionEnum<BeltShearMode>>("belt_shear_x")->value;
         toggle_option("belt_shear_x_angle",  is_belt && sx != BeltShearMode::None);
         toggle_option("belt_shear_x_from",   is_belt && sx != BeltShearMode::None);
-        toggle_option("belt_shear_x_global", is_belt && sx != BeltShearMode::None);
+        toggle_option("belt_shear_x_global", is_belt && sx != BeltShearMode::None && !belt_global);
 
         auto sy = m_config->option<ConfigOptionEnum<BeltShearMode>>("belt_shear_y")->value;
         toggle_option("belt_shear_y_angle",  is_belt && sy != BeltShearMode::None);
         toggle_option("belt_shear_y_from",   is_belt && sy != BeltShearMode::None);
-        toggle_option("belt_shear_y_global", is_belt && sy != BeltShearMode::None);
+        toggle_option("belt_shear_y_global", is_belt && sy != BeltShearMode::None && !belt_global);
 
         auto sz = m_config->option<ConfigOptionEnum<BeltShearMode>>("belt_shear_z")->value;
         toggle_option("belt_shear_z_angle",  is_belt && sz != BeltShearMode::None);
         toggle_option("belt_shear_z_from",   is_belt && sz != BeltShearMode::None);
-        toggle_option("belt_shear_z_global", is_belt && sz != BeltShearMode::None);
+        toggle_option("belt_shear_z_global", is_belt && sz != BeltShearMode::None && !belt_global);
 
         auto scx = m_config->option<ConfigOptionEnum<BeltScaleMode>>("belt_scale_x")->value;
         toggle_option("belt_scale_x_angle", is_belt && scx != BeltScaleMode::None);
@@ -5353,9 +5363,10 @@ void TabPrinter::toggle_options()
         auto scz = m_config->option<ConfigOptionEnum<BeltScaleMode>>("belt_scale_z")->value;
         toggle_option("belt_scale_z_angle", is_belt && scz != BeltScaleMode::None);
 
-        toggle_option("belt_origin_offset_x", is_belt && m_config->opt_bool("belt_origin_snap_x"));
-        toggle_option("belt_origin_offset_y", is_belt && m_config->opt_bool("belt_origin_snap_y"));
-        toggle_option("belt_origin_offset_z", is_belt && m_config->opt_bool("belt_origin_snap_z"));
+        // Origin snap is superseded by belt_preslice_global
+        toggle_option("belt_origin_offset_x", is_belt && m_config->opt_bool("belt_origin_snap_x") && !belt_global);
+        toggle_option("belt_origin_offset_y", is_belt && m_config->opt_bool("belt_origin_snap_y") && !belt_global);
+        toggle_option("belt_origin_offset_z", is_belt && m_config->opt_bool("belt_origin_snap_z") && !belt_global);
 
         toggle_line("belt_support_floor_mode", is_belt);
     }
