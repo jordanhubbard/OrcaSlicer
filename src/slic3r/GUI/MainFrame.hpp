@@ -327,6 +327,13 @@ public:
     //BBS: GUI refactor
     void        select_tab(wxPanel* panel);
     void        select_tab(size_t tab = size_t(-1));
+    // Automation: select a top-level tab by stable name ("home", "prepare",
+    // "preview", "device", "multi_device", "project", "calibration"). Returns the
+    // resulting notebook page index, or -1 if that view is unavailable in the
+    // current layout. Robust to conditionally-present tabs (e.g. Multi-device) that
+    // shift raw indices: Prepare/Preview select by fixed index (they share m_plater
+    // at 1/2), every other view selects by its page window via FindPage.
+    int         select_tab_by_name(const std::string& name);
     void        request_select_tab(TabPosition pos);
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);

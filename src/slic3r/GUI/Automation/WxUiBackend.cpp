@@ -325,4 +325,17 @@ int WxUiBackend::open_files(const std::vector<std::string>& paths) {
     });
 }
 
+int WxUiBackend::select_view(const std::string& view) {
+    return run_on_gui(m_gui_timeout_ms, [&]() -> int {
+        MainFrame* mainframe = wxGetApp().mainframe;
+        if (mainframe == nullptr)
+            throw AutomationError(kErrNotFound, "no main frame to select a view in");
+        const int index = mainframe->select_tab_by_name(view);
+        if (index < 0)
+            throw AutomationError(kErrNotFound,
+                                  std::string("view not available: ") + view);
+        return index;
+    });
+}
+
 }}} // namespace Slic3r::GUI::Automation

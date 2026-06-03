@@ -3883,6 +3883,30 @@ void MainFrame::select_tab(wxPanel* panel)
     select_tab(size_t(page_idx));
 }
 
+int MainFrame::select_tab_by_name(const std::string& name)
+{
+    // Prepare/Preview share m_plater and sit at fixed indices (always before any
+    // conditionally-present tab), so select them by index. Every other view selects
+    // by its page window via FindPage, which stays correct even when optional tabs
+    // (e.g. Multi-device) shift the raw indices.
+    if (name == "prepare") { select_tab(size_t(tp3DEditor)); return m_tabpanel->GetSelection(); }
+    if (name == "preview") { select_tab(size_t(tpPreview));  return m_tabpanel->GetSelection(); }
+
+    wxWindow* page = nullptr;
+    if      (name == "home")         page = m_webview;
+    else if (name == "device")       page = m_monitor;
+    else if (name == "multi_device") page = m_multi_machine;
+    else if (name == "project")      page = m_project;
+    else if (name == "calibration")  page = m_calibration;
+    else return -1; // unknown view name
+
+    if (page == nullptr) return -1;                 // view not available in this layout
+    const int idx = m_tabpanel->FindPage(page);
+    if (idx == wxNOT_FOUND) return -1;
+    select_tab(size_t(idx));
+    return m_tabpanel->GetSelection();
+}
+
 //BBS
 void MainFrame::jump_to_monitor(std::string dev_id)
 {

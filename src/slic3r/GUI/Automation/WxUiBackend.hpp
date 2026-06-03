@@ -20,6 +20,7 @@ public:
     bool     send_keys(const std::vector<KeyChord>& chords) override;
     PngImage screenshot_window(const UiNode* target) override;
     int      open_files(const std::vector<std::string>& paths) override;
+    int      select_view(const std::string& view) override;
 
 private:
     int m_gui_timeout_ms;
