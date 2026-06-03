@@ -41,7 +41,7 @@ dialog-driving mechanism (intercept hook or true OS-level drive) — explicitly 
 - **Errors:**
   | Code | Constant | Condition |
   |------|----------|-----------|
-  | 1002 | `kInvalidParams` | `paths` missing/empty, or a non-string entry |
+  | -32602 | `kInvalidParams` | `paths` missing/empty, a non-string entry, or no non-empty path |
   | 1004 | `kErrGuiBusy` | GUI-thread marshal timed out (`m_gui_timeout_ms`) |
   | 1007 | `kErrLoadFailed` | `load_files` returned empty / threw (not found, parse error, unsupported format) — **new code** |
 
@@ -89,7 +89,7 @@ Follows the existing `screenshot_window` / `app_state` method pattern.
 5. **`tests/automation/test_dispatcher.cpp`** — Catch2 v2 tests:
    - array of paths → routes to backend, returns `loaded` count
    - bare-string path → normalized to one path
-   - missing/empty `paths` → `1002`
+   - missing/empty `paths` → `-32602` (`kInvalidParams`)
    - backend load failure → `1007`
    - `automation.version` capabilities array includes `"file.open"`
 6. **`tools/automation/orca_automation.py`** — `open(self, paths)` wrapper (normalize

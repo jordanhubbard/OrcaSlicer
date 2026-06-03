@@ -4,7 +4,8 @@ OrcaSlicer ships an **opt-in, localhost-only JSON-RPC server** that lets externa
 scripts introspect, drive, and screenshot the running OrcaSlicer GUI. It is built
 for end-to-end testing and automation: a script can enumerate the live widget
 tree, click buttons, type text, send keyboard shortcuts, wait for UI state, query
-high-level application state, and capture window images (the on-screen capture
+high-level application state, load models/projects into the running instance,
+switch the active view/tab, and capture window images (the on-screen capture
 includes the 3D viewport).
 
 This document is the protocol reference. It describes activation, the transport,
@@ -549,10 +550,14 @@ from orca_automation import OrcaClient
 orca = OrcaClient(port=13619)
 print(orca.version())                       # {'version': '1.0.0', ...}
 
+orca.select_view("prepare")                 # switch to the 3D editor
+orca.open(r"C:\models\part.stl")            # load a model at runtime (synchronous)
+
 orca.click({"id": "btn_slice"})             # start slicing the plate
 orca.wait_for({"id": "btn_export"},         # wait until slicing finishes
               state="enabled", timeout_ms=180000)
 
+orca.select_view("preview")                 # switch to the sliced G-code preview
 png = orca.screenshot()                     # on-screen capture (incl. 3D view)
 with open("window.png", "wb") as f:
     f.write(png)
