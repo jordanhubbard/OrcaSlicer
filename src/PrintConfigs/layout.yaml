@@ -568,91 +568,102 @@ tabs:
         icon: "custom-gcode_object-info"
         groups:
           - name: "Printable space"
-            fields:
-              - printable_area # HOOK
-              - bed_exclude_area
-              - printable_height
-              - support_multi_bed_types
-              - best_object_pos
-              - z_offset
-              - preferred_orientation
-          - name: "Advanced" # HOOK
-            fields:
-              - printer_structure
-              - gcode_flavor
-              - pellet_modded_printer
-              - bbl_use_printhost
-              - scan_first_layer
-              - enable_power_loss_recovery
-              - disable_m73
-              - thumbnails
-              - use_relative_e_distances
-              - use_firmware_retraction
-              - time_cost
+            icon: "param_printable_space"
+            hook: true
+          - name: "Advanced"
+            icon: "param_advanced"
+            hook: true
           - name: "Cooling Fan"
-            fields:
-              - [fan_speedup_time, fan_speedup_overhangs]
-              - fan_kickstart
+            icon: "param_cooling_fan"
+            hook: true
           - name: "Extruder Clearance"
+            icon: "param_extruder_clearance"
             fields:
-              - extruder_clearance_radius
-              - extruder_clearance_height_to_rod
-              - extruder_clearance_height_to_lid
+              - extruder_clearance_radius: printer_basic_information_extruder_clearance#radius
+              - extruder_clearance_height_to_rod: printer_basic_information_extruder_clearance#height-to-rod
+              - extruder_clearance_height_to_lid: printer_basic_information_extruder_clearance#height-to-lid
           - name: "Adaptive bed mesh"
+            icon: "param_adaptive_mesh"
             fields:
-              - bed_mesh_min
-              - bed_mesh_max
-              - bed_mesh_probe_distance
-              - adaptive_bed_mesh_margin
+              - bed_mesh_min: printer_basic_information_adaptive_bed_mesh#bed-mesh
+              - bed_mesh_max: printer_basic_information_adaptive_bed_mesh#bed-mesh
+              - bed_mesh_probe_distance: printer_basic_information_adaptive_bed_mesh#probe-point-distance
+              - adaptive_bed_mesh_margin: printer_basic_information_adaptive_bed_mesh#mesh-margin
           - name: "Accessory"
+            icon: "param_accessory"
             fields:
-              - nozzle_type
-              - nozzle_hrc
-              - auxiliary_fan
-              - support_chamber_temp_control
-              - support_air_filtration
+              - nozzle_type: printer_basic_information_accessory#nozzle-type
+              - nozzle_hrc: printer_basic_information_accessory#nozzle-hrc
+              - auxiliary_fan: printer_basic_information_accessory#auxiliary-part-cooling-fan
+              - support_chamber_temp_control: printer_basic_information_accessory#support-controlling-chamber-temperature
+              - support_air_filtration: printer_basic_information_accessory#support-air-filtration
       - name: "Machine G-code"
         icon: "custom-gcode_gcode"
         groups:
-          - name: "File header G-code" # HOOK
+          - name: "File header G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - file_start_gcode
-          - name: "Machine start G-code" # HOOK
+              - file_start_gcode: ""
+          - name: "Machine start G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - machine_start_gcode
-          - name: "Machine end G-code" # HOOK
+              - machine_start_gcode: printer_machine_gcode#machine-start-g-code
+          - name: "Machine end G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - machine_end_gcode
-          - name: "Printing by object G-code" # HOOK
+              - machine_end_gcode: printer_machine_gcode#machine-end-g-code
+          - name: "Printing by object G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - printing_by_object_gcode
-          - name: "Before layer change G-code" # HOOK
+              - printing_by_object_gcode: printer_machine_gcode#between-object-g-code
+          - name: "Before layer change G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - before_layer_change_gcode
-          - name: "Layer change G-code" # HOOK
+              - before_layer_change_gcode: printer_machine_gcode#before-layer-change-g-code
+          - name: "Layer change G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - layer_change_gcode
-          - name: "Timelapse G-code" # HOOK
+              - layer_change_gcode: printer_machine_gcode#after-layer-change-g-code
+          - name: "Timelapse G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - time_lapse_gcode
-          - name: "Clumping Detection G-code" # HOOK
+              - time_lapse_gcode: printer_machine_gcode#time-lapse-g-code
+          - name: "Clumping Detection G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - wrapping_detection_gcode
-          - name: "Change filament G-code" # HOOK
+              - wrapping_detection_gcode: printer_machine_gcode#clumping-detection-g-code
+          - name: "Change filament G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - change_filament_gcode
-          - name: "Change extrusion role G-code" # HOOK
+              - change_filament_gcode: printer_machine_gcode#change-filament-g-code
+          - name: "Change extrusion role G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - change_extrusion_role_gcode
-          - name: "Pause G-code" # HOOK
+              - change_extrusion_role_gcode: printer_machine_gcode#change-extrusion-role-g-code
+          - name: "Pause G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - machine_pause_gcode
-          - name: "Template Custom G-code" # HOOK
+              - machine_pause_gcode: printer_machine_gcode#pause-g-code
+          - name: "Template Custom G-code"
+            icon: "param_gcode"
+            gcode: true
             fields:
-              - template_custom_gcode
+              - template_custom_gcode: printer_machine_gcode#template-custom-g-code
       - name: "Notes"
         icon: "custom-gcode_note"
         groups:
           - name: "Notes"
+            icon: "note"
             fields:
-              - printer_notes
+              - printer_notes: ""
