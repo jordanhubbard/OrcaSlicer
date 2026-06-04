@@ -98,8 +98,9 @@ def parse_generated_settings(gen_path):
 
 
 def main():
-    orig_path = Path("src/libslic3r/PrintConfig.cpp")
-    gen_path = Path("codegen/generated/PrintConfigDef_generated.cpp")
+    root = Path(__file__).resolve().parent.parent
+    orig_path = root / "src/libslic3r/PrintConfig.cpp"
+    gen_path = root / "src/slic3r/GUI/generated/PrintConfigDef_generated.cpp"
 
     if not orig_path.exists() or not gen_path.exists():
         print("ERROR: Required files not found")
