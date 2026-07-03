@@ -183,7 +183,6 @@ void PrinterWebView::create_browser()
 
 void PrinterWebView::reset_browser()
 {
-    BOOST_LOG_TRIVIAL(info) << "DEVTAB reset_browser"; // TEMP diag
     wxSizer* topsizer = GetSizer();
     if (m_browser) {
         if (topsizer)

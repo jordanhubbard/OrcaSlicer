@@ -68,8 +68,15 @@ private:
     wxString   m_project_home_url;
     wxString   m_root_dir;
     static inline int m_sequence_id = 8000;
+    // Set when this panel is built during a GUI rebuild (language switch), where
+    // the WebView2 backend can come up wedged. Recreate it on first show.
+    bool       m_reset_on_show = {false};
 
     void show_info_editor(bool show);
+    // Create/configure m_browser (create + bind events + load the home url).
+    void create_browser();
+    // Tear down and recreate m_browser to recover from a wedged backend.
+    void reset_browser();
     
 
 public:
