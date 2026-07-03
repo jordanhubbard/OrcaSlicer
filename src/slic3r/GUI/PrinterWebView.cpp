@@ -179,13 +179,13 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     m_apikey_sent = false;
     m_handler = create_printer_webview_handler(*this);
 
-    if (this->IsShown()) {
-        //ORCA: m_url_deferred will be cleared on load success
-        //m_url_deferred.clear();
+    // Always remember the requested URL as a fallback. If the immediate load
+    // below is dropped (e.g. the webview backend is not ready yet right after
+    // recreate_GUI on a language switch), Show() will retry it. OnLoaded clears
+    // m_url_deferred once the page actually finishes loading.
+    m_url_deferred = url;
+    if (this->IsShown())
         m_browser->LoadURL(url);
-    } else {
-        m_url_deferred = url;
-    }
     //m_browser->SetFocus();
     UpdateState();
 }
