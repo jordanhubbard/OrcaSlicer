@@ -47,5 +47,7 @@ internal_docs/
 *.flatpak
 /flatpak-repo/
 config.desc
-tools/__pycache__/
 src/slic3r/GUI/generated/
+# Python bytecode
+__pycache__/
+*.pyc
