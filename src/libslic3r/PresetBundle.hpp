@@ -497,6 +497,10 @@ private:
     // filament presets sharing one filament_id (ambiguous AMS subtype match).
     bool check_duplicate_filament_subtypes() const;
 
+    // Orca: validation only - flag any machine_model default_materials entry that references
+    // an unknown filament (does not resolve) or a filament that is not compatible with the model.
+    bool check_default_materials() const;
+
     //std::pair<PresetsConfigSubstitutions, std::string> load_system_presets(ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json related logic
     std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule);

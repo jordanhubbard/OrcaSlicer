@@ -5554,6 +5554,9 @@ bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes) const
     if (this->check_preset_references())
         has_errors = true;
 
+    if (this->check_default_materials())
+        has_errors = true;
+
     return has_errors;
 }
 
@@ -5642,6 +5645,68 @@ bool PresetBundle::check_preset_references() const
     check_collection(this->filaments,     &this->prints);
     check_collection(this->sla_prints,    nullptr);
     check_collection(this->sla_materials, &this->sla_prints);
+
+    return found;
+}
+
+// Orca: validation only. A machine_model's default_materials is a curated list of the filament
+// presets offered as defaults for that model. On a fresh install the runtime inserts them
+// (load_installed_filaments) trusting each one both resolves and is compatible with the model -
+// it does not re-verify, so a bad entry is silently dropped or shown then hidden. This check
+// reports two distinct defects so they can be triaged and fixed separately:
+//   (A) unknown      - the name resolves to no filament preset (find_preset returns null).
+//   (B) incompatible - the name resolves but the filament is not compatible with ANY printer
+//                      preset of the model, so it is dead for every variant of that model.
+// Compatibility reuses the app's own predicate (is_compatible_with_printer, the same call the
+// runtime makes when auto-installing filaments), so the verdict matches runtime behaviour,
+// including compatible_printers lists, compatible_printers_condition and library rules.
+bool PresetBundle::check_default_materials() const
+{
+    bool found = false;
+
+    // Group system printer presets by their machine model, so a default material can be tested
+    // against every nozzle variant of the model (compatible with a single variant is enough).
+    std::map<std::string, std::vector<const Preset *>> model_printers;
+    for (const Preset &printer : this->printers) {
+        if (!printer.is_system)
+            continue;
+        const std::string &model_id = printer.config.opt_string("printer_model");
+        if (!model_id.empty())
+            model_printers[model_id].push_back(&printer);
+    }
+
+    for (const auto &[vendor_name, vendor_profile] : this->vendors) {
+        for (const VendorProfile::PrinterModel &model : vendor_profile.models) {
+            const auto printers_it = model_printers.find(model.id);
+            for (const std::string &material : model.default_materials) {
+                if (material.empty())
+                    continue;
+                const Preset *filament = this->filaments.find_preset(material, false);
+                if (filament == nullptr) {
+                    found = true;
+                    BOOST_LOG_TRIVIAL(error) << "Machine model \"" << model.name << "\" (vendor \"" << vendor_name
+                                             << "\") default_materials references unknown filament \"" << material << "\"";
+                    continue;
+                }
+                // (B) is only meaningful when the model has printer presets to test against.
+                if (printers_it == model_printers.end())
+                    continue;
+                const PresetWithVendorProfile filament_with_vendor(*filament, filament->vendor);
+                bool compatible = false;
+                for (const Preset *printer : printers_it->second)
+                    if (is_compatible_with_printer(filament_with_vendor, PresetWithVendorProfile(*printer, printer->vendor))) {
+                        compatible = true;
+                        break;
+                    }
+                if (!compatible) {
+                    found = true;
+                    BOOST_LOG_TRIVIAL(error) << "Machine model \"" << model.name << "\" (vendor \"" << vendor_name
+                                             << "\") default_materials filament \"" << material
+                                             << "\" is not compatible with any of the model's printers";
+                }
+            }
+        }
+    }
 
     return found;
 }
