@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_K1_CFS_C",
-	"default_materials": "Creality Generic ABS;Creality Generic ASA;Creality Generic PC @K1-all;Creality Generic PLA;Creality HF Generic PLA;Creality HF Generic Speed PLA;Creality Generic PLA High Speed @K1-all;Creality Generic PLA Matte @K1-all;Creality Generic PLA Silk @K1-all;Creality Generic PETG;Creality Generic TPU"
+	"default_materials": "CR-ABS @K1_CFS-C-all;HP-ASA @K1_CFS-C-all;Generic PC @K1_CFS-C-all;CR-PLA @K1_CFS-C-all;Generic PLA High Speed @System;Generic PLA Matte @System;Generic PLA Silk @System;CR-PETG @K1_CFS-C-all;CR-TPU @K1_CFS-C-all"
 }
