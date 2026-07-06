@@ -4238,15 +4238,6 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
 
     update_publish_status();
 
-    // The Device tab's PrinterWebView is recreated during this GUI rebuild. Re-issue
-    // the printer URL once the new window is realized and the webview backend is ready,
-    // otherwise the tab can stay blank until the next real restart (non-Bambu/webui
-    // printers only; load_printer_url() is a no-op for the Bambu device tab).
-    CallAfter([this] {
-        if (mainframe)
-            mainframe->load_printer_url();
-    });
-
     m_is_recreating_gui = false;
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI exit";
