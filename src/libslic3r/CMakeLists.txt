@@ -442,6 +442,8 @@ set(lisbslic3r_sources
     Tesselate.cpp
     Tesselate.hpp
     TextConfiguration.hpp
+    TextureDisplacement.cpp
+    TextureDisplacement.hpp
     Thread.cpp
     Thread.hpp
     Time.cpp

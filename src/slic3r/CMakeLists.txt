@@ -172,6 +172,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmosManager.hpp
     GUI/Gizmos/GLGizmoSVG.cpp
     GUI/Gizmos/GLGizmoSVG.hpp
+    GUI/Gizmos/GLGizmoTextureDisplacement.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacement.hpp
     GUI/Gizmos/GLGizmoUtils.cpp
     GUI/Gizmos/GLGizmoUtils.hpp
     #GUI/Gizmos/GLGizmoText.cpp
@@ -297,6 +299,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/SLAImportDialog.hpp
     GUI/Jobs/SLAImportJob.cpp
     GUI/Jobs/SLAImportJob.hpp
+    GUI/Jobs/TextureDisplacementBakeJob.cpp
+    GUI/Jobs/TextureDisplacementBakeJob.hpp
     GUI/Jobs/ThreadSafeQueue.hpp
     GUI/Jobs/UpgradeNetworkJob.cpp
     GUI/Jobs/UpgradeNetworkJob.hpp

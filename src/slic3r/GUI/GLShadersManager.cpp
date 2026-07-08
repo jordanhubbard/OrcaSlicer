@@ -100,6 +100,8 @@ std::pair<bool, std::string> GLShadersManager::init()
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" }, { "FLIP_TRIANGLE_NORMALS"sv });
     else
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" });
+    // Fast bump-map preview for the texture displacement gizmo (see libslic3r/TextureDisplacement.hpp).
+    valid &= append_shader("texture_displacement_bump", { prefix + "texture_displacement_bump.vs", prefix + "texture_displacement_bump.fs" });
 
     return { valid, error };
 }
