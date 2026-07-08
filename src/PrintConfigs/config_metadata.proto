@@ -19,6 +19,7 @@ enum ConfigMode {
   MODE_SIMPLE   = 0;
   MODE_ADVANCED = 1;
   MODE_DEVELOP  = 2;
+  MODE_EXPERT   = 3;
 }
 
 enum PresetType {

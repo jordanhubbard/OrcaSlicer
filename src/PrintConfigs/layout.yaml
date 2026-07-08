@@ -53,6 +53,7 @@ tabs:
               - hole_to_polyhole
               - hole_to_polyhole_threshold
               - hole_to_polyhole_twisted
+              - hole_to_polyhole_max_edges
           - name: "Ironing"
             fields:
               - ironing_type
@@ -135,10 +136,12 @@ tabs:
               - top_shell_thickness
               - top_surface_density
               - top_surface_pattern
+              - top_layer_direction
               - bottom_shell_layers
               - bottom_shell_thickness
               - bottom_surface_density
               - bottom_surface_pattern
+              - bottom_layer_direction
               - top_bottom_infill_wall_overlap
           - name: "Infill"
             fields:
@@ -199,6 +202,8 @@ tabs:
               - ironing_speed
               - support_speed
               - support_interface_speed
+              - small_support_perimeter_speed
+              - small_support_perimeter_threshold
           - name: "Overhang speed"
             fields:
               - enable_overhang_speed

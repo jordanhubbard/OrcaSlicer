@@ -3212,6 +3212,20 @@ message PrintSettings {
   ];
 
 
+  int32 hole_to_polyhole_max_edges = 480 [
+    (label)     = "Maximum Polyhole edge count",
+    (tooltip)     = "Maximum number of polyhole edges\\nThis setting limits the amount of edges a polyhole can have",
+    (category)     = "Print/Quality",
+    (tab_type)     = "Print",
+    (tab_page)     = "Quality",
+    (tab_optgroup)     = "Precision",
+    (min_value)     = 3,
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "50"
+  ];
+
+
   int32 wall_generator = 208 [
     (label)     = "Wall generator",
     (tooltip)     = "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width.",
@@ -3387,7 +3401,8 @@ message PrintSettings {
   ];
 
 
-  bool enable_overhang_speed = 219 [
+  repeated bool enable_overhang_speed = 219 [
+    (is_nullable)     = true,
     (label)     = "Slow down for overhang",
     (tooltip)     = "Enable this option to slow printing down for different overhang degree.",
     (category)     = "Print/Speed",
@@ -3400,7 +3415,8 @@ message PrintSettings {
   ];
 
 
-  bool slowdown_for_curled_perimeters = 220 [
+  repeated bool slowdown_for_curled_perimeters = 220 [
+    (is_nullable)     = true,
     (label)     = "Slow down for curled perimeters",
     (tooltip)     = "Enable this option to slow down printing in areas where perimeters may have curled upwards. For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\\n\\nIt is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed slow enough that perimeter curling does not happen. If printing with a high external perimeter speed, this parameter may introduce slight artifacts when slowing down due to the large variance in print speeds. If you notice artifacts, ensure your pressure advance is tuned correctly.\\n\\nNote: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge. For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 100% overhang speed will be applied.",
     (category)     = "Print/Speed",
@@ -3413,7 +3429,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent overhang_1_4_speed = 221 [
+  repeated FloatOrPercent overhang_1_4_speed = 221 [
+    (is_nullable)     = true,
     (label)     = "10%",
     (full_label)     = "10%",
     (category)     = "Print/Speed",
@@ -3429,7 +3446,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent overhang_2_4_speed = 222 [
+  repeated FloatOrPercent overhang_2_4_speed = 222 [
+    (is_nullable)     = true,
     (label)     = "25%",
     (full_label)     = "25%",
     (category)     = "Print/Speed",
@@ -3445,7 +3463,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent overhang_3_4_speed = 223 [
+  repeated FloatOrPercent overhang_3_4_speed = 223 [
+    (is_nullable)     = true,
     (label)     = "50%",
     (full_label)     = "50%",
     (category)     = "Print/Speed",
@@ -3461,7 +3480,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent overhang_4_4_speed = 224 [
+  repeated FloatOrPercent overhang_4_4_speed = 224 [
+    (is_nullable)     = true,
     (label)     = "75%",
     (full_label)     = "75%",
     (category)     = "Print/Speed",
@@ -3477,7 +3497,8 @@ message PrintSettings {
   ];
 
 
-  float bridge_speed = 225 [
+  repeated float bridge_speed = 225 [
+    (is_nullable)     = true,
     (label)     = "External",
     (tooltip)     = "Speed of the externally visible bridge extrusions.\\n\\nIn addition, if Slow down for curled perimeters is disabled or Classic overhang mode is enabled, it will be the print speed of overhang walls that are supported by less than 13%, whether they are part of a bridge or an overhang.",
     (category)     = "Print/Speed",
@@ -3492,7 +3513,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent internal_bridge_speed = 226 [
+  repeated FloatOrPercent internal_bridge_speed = 226 [
+    (is_nullable)     = true,
     (label)     = "Internal",
     (tooltip)     = "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%.",
     (category)     = "Print/Speed",
@@ -3508,7 +3530,8 @@ message PrintSettings {
   ];
 
 
-  float default_acceleration = 227 [
+  repeated float default_acceleration = 227 [
+    (is_nullable)     = true,
     (label)     = "Normal printing",
     (tooltip)     = "The default acceleration of both normal printing and travel except initial layer.",
     (category)     = "Print/Speed",
@@ -3524,7 +3547,8 @@ message PrintSettings {
   ];
 
 
-  float outer_wall_speed = 228 [
+  repeated float outer_wall_speed = 228 [
+    (is_nullable)     = true,
     (label)     = "Outer wall",
     (tooltip)     = "Speed of outer wall which is outermost and visible. It's used to be slower than inner wall speed to get better quality.",
     (category)     = "Print/Speed",
@@ -3539,7 +3563,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent small_perimeter_speed = 229 [
+  repeated FloatOrPercent small_perimeter_speed = 229 [
+    (is_nullable)     = true,
     (label)     = "Small perimeters",
     (tooltip)     = "This separate setting will affect the speed of perimeters having radius <= small_perimeter_threshold (usually holes). If expressed as percentage (for example: 80%) it will be calculated on the outer wall speed setting above. Set to zero for auto.",
     (category)     = "Print/Speed",
@@ -3555,7 +3580,8 @@ message PrintSettings {
   ];
 
 
-  float small_perimeter_threshold = 230 [
+  repeated float small_perimeter_threshold = 230 [
+    (is_nullable)     = true,
     (label)     = "Small perimeters threshold",
     (tooltip)     = "This sets the threshold for small perimeter length. Default threshold is 0mm.",
     (category)     = "Print/Speed",
@@ -3570,7 +3596,41 @@ message PrintSettings {
   ];
 
 
-  float inner_wall_acceleration = 231 [
+  repeated FloatOrPercent small_support_perimeter_speed = 481 [
+    (is_nullable)     = true,
+    (label)     = "Small support perimeters",
+    (tooltip)     = "Same as \\\"Small perimeters\\\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto.",
+    (category)     = "Print/Speed",
+    (sidetext)     = "mm/s or %",
+    (ratio_over)     = "outer_wall_speed",
+    (tab_type)     = "Print",
+    (tab_page)     = "Speed",
+    (tab_optgroup)     = "Other layers speed",
+    (min_value)     = 1,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "50, true"
+  ];
+
+
+  repeated float small_support_perimeter_threshold = 482 [
+    (is_nullable)     = true,
+    (label)     = "Small support perimeters threshold",
+    (tooltip)     = "This sets the threshold for small support perimeter length. The default threshold is 0mm.",
+    (category)     = "Print/Speed",
+    (sidetext)     = "mm",
+    (tab_type)     = "Print",
+    (tab_page)     = "Speed",
+    (tab_optgroup)     = "Other layers speed",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float inner_wall_acceleration = 231 [
+    (is_nullable)     = true,
     (label)     = "Inner wall",
     (tooltip)     = "Acceleration of inner walls.",
     (category)     = "Print/Speed",
@@ -3586,7 +3646,8 @@ message PrintSettings {
   ];
 
 
-  float travel_acceleration = 232 [
+  repeated float travel_acceleration = 232 [
+    (is_nullable)     = true,
     (label)     = "Travel",
     (tooltip)     = "Acceleration of travel moves.",
     (category)     = "Print/Speed",
@@ -3602,7 +3663,8 @@ message PrintSettings {
   ];
 
 
-  float top_surface_acceleration = 233 [
+  repeated float top_surface_acceleration = 233 [
+    (is_nullable)     = true,
     (label)     = "Top surface",
     (tooltip)     = "Acceleration of top surface infill. Using a lower value may improve top surface quality.",
     (category)     = "Print/Speed",
@@ -3618,7 +3680,8 @@ message PrintSettings {
   ];
 
 
-  float outer_wall_acceleration = 234 [
+  repeated float outer_wall_acceleration = 234 [
+    (is_nullable)     = true,
     (label)     = "Outer wall",
     (tooltip)     = "Acceleration of outer wall. Using a lower value can improve quality.",
     (category)     = "Print/Speed",
@@ -3634,7 +3697,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent bridge_acceleration = 235 [
+  repeated FloatOrPercent bridge_acceleration = 235 [
+    (is_nullable)     = true,
     (label)     = "Bridge",
     (tooltip)     = "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration.",
     (category)     = "Print/Speed",
@@ -3651,7 +3715,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent sparse_infill_acceleration = 236 [
+  repeated FloatOrPercent sparse_infill_acceleration = 236 [
+    (is_nullable)     = true,
     (label)     = "Sparse infill",
     (tooltip)     = "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration.",
     (category)     = "Print/Speed",
@@ -3668,7 +3733,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent internal_solid_infill_acceleration = 237 [
+  repeated FloatOrPercent internal_solid_infill_acceleration = 237 [
+    (is_nullable)     = true,
     (label)     = "Internal solid infill",
     (tooltip)     = "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration.",
     (category)     = "Print/Speed",
@@ -3685,7 +3751,8 @@ message PrintSettings {
   ];
 
 
-  float initial_layer_acceleration = 238 [
+  repeated float initial_layer_acceleration = 238 [
+    (is_nullable)     = true,
     (label)     = "First layer",
     (tooltip)     = "Acceleration of the first layer. Using a lower value can improve build plate adhesion.",
     (category)     = "Print/Speed",
@@ -3701,7 +3768,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent initial_layer_travel_acceleration = 239 [
+  repeated FloatOrPercent initial_layer_travel_acceleration = 239 [
+    (is_nullable)     = true,
     (label)     = "First layer travel",
     (tooltip)     = "Travel acceleration of first layer.\\nThe percentage value is relative to Travel Acceleration.",
     (category)     = "Print/Speed",
@@ -3751,7 +3819,8 @@ message PrintSettings {
   ];
 
 
-  float default_jerk = 242 [
+  repeated float default_jerk = 242 [
+    (is_nullable)     = true,
     (label)     = "Default",
     (tooltip)     = "Default jerk.",
     (category)     = "Print/Speed",
@@ -3766,7 +3835,8 @@ message PrintSettings {
   ];
 
 
-  float default_junction_deviation = 243 [
+  repeated float default_junction_deviation = 243 [
+    (is_nullable)     = true,
     (label)     = "Junction Deviation",
     (tooltip)     = "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).",
     (category)     = "Print/Speed",
@@ -3782,7 +3852,8 @@ message PrintSettings {
   ];
 
 
-  float outer_wall_jerk = 244 [
+  repeated float outer_wall_jerk = 244 [
+    (is_nullable)     = true,
     (label)     = "Outer wall",
     (tooltip)     = "Jerk of outer walls.",
     (category)     = "Print/Speed",
@@ -3797,7 +3868,8 @@ message PrintSettings {
   ];
 
 
-  float inner_wall_jerk = 245 [
+  repeated float inner_wall_jerk = 245 [
+    (is_nullable)     = true,
     (label)     = "Inner wall",
     (tooltip)     = "Jerk of inner walls.",
     (category)     = "Print/Speed",
@@ -3812,7 +3884,8 @@ message PrintSettings {
   ];
 
 
-  float top_surface_jerk = 246 [
+  repeated float top_surface_jerk = 246 [
+    (is_nullable)     = true,
     (label)     = "Top surface",
     (tooltip)     = "Jerk for top surface.",
     (category)     = "Print/Speed",
@@ -3827,7 +3900,8 @@ message PrintSettings {
   ];
 
 
-  float infill_jerk = 247 [
+  repeated float infill_jerk = 247 [
+    (is_nullable)     = true,
     (label)     = "Infill",
     (tooltip)     = "Jerk for infill.",
     (category)     = "Print/Speed",
@@ -3842,7 +3916,8 @@ message PrintSettings {
   ];
 
 
-  float initial_layer_jerk = 248 [
+  repeated float initial_layer_jerk = 248 [
+    (is_nullable)     = true,
     (label)     = "First layer",
     (tooltip)     = "Jerk for the first layer.",
     (category)     = "Print/Speed",
@@ -3857,7 +3932,8 @@ message PrintSettings {
   ];
 
 
-  float travel_jerk = 249 [
+  repeated float travel_jerk = 249 [
+    (is_nullable)     = true,
     (label)     = "Travel",
     (tooltip)     = "Jerk for travel.",
     (category)     = "Print/Speed",
@@ -3872,7 +3948,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent initial_layer_travel_jerk = 250 [
+  repeated FloatOrPercent initial_layer_travel_jerk = 250 [
+    (is_nullable)     = true,
     (label)     = "First layer travel",
     (tooltip)     = "Travel jerk of first layer.\\nThe percentage value is relative to Travel Jerk.",
     (category)     = "Print/Speed",
@@ -3890,7 +3967,8 @@ message PrintSettings {
   ];
 
 
-  float initial_layer_speed = 251 [
+  repeated float initial_layer_speed = 251 [
+    (is_nullable)     = true,
     (label)     = "First layer",
     (tooltip)     = "Speed of the first layer except the solid infill part.",
     (category)     = "Print/Speed",
@@ -3907,7 +3985,8 @@ message PrintSettings {
   ];
 
 
-  float initial_layer_infill_speed = 252 [
+  repeated float initial_layer_infill_speed = 252 [
+    (is_nullable)     = true,
     (label)     = "First layer infill",
     (tooltip)     = "Speed of solid infill part of the first layer.",
     (category)     = "Print/Speed",
@@ -3924,7 +4003,8 @@ message PrintSettings {
   ];
 
 
-  FloatOrPercent initial_layer_travel_speed = 253 [
+  repeated FloatOrPercent initial_layer_travel_speed = 253 [
+    (is_nullable)     = true,
     (label)     = "First layer travel speed",
     (tooltip)     = "Travel speed of the first layer.",
     (category)     = "Print/Speed",
@@ -3959,7 +4039,8 @@ message PrintSettings {
   ];
 
 
-  float gap_infill_speed = 255 [
+  repeated float gap_infill_speed = 255 [
+    (is_nullable)     = true,
     (label)     = "Gap infill",
     (tooltip)     = "Speed of gap infill. Gap usually has irregular line width and should be printed more slowly.",
     (category)     = "Print/Speed",
@@ -3974,7 +4055,8 @@ message PrintSettings {
   ];
 
 
-  float sparse_infill_speed = 256 [
+  repeated float sparse_infill_speed = 256 [
+    (is_nullable)     = true,
     (label)     = "Sparse infill",
     (tooltip)     = "Speed of internal sparse infill.",
     (category)     = "Print/Speed",
@@ -4051,7 +4133,8 @@ message PrintSettings {
   ];
 
 
-  float inner_wall_speed = 261 [
+  repeated float inner_wall_speed = 261 [
+    (is_nullable)     = true,
     (label)     = "Inner wall",
     (tooltip)     = "Speed of inner wall.",
     (category)     = "Print/Speed",
@@ -4066,7 +4149,8 @@ message PrintSettings {
   ];
 
 
-  float internal_solid_infill_speed = 262 [
+  repeated float internal_solid_infill_speed = 262 [
+    (is_nullable)     = true,
     (label)     = "Internal solid infill",
     (tooltip)     = "Speed of internal solid infill, not the top and bottom surface.",
     (category)     = "Print/Speed",
@@ -4081,7 +4165,8 @@ message PrintSettings {
   ];
 
 
-  float support_interface_speed = 263 [
+  repeated float support_interface_speed = 263 [
+    (is_nullable)     = true,
     (label)     = "Support interface",
     (tooltip)     = "Speed of support interface.",
     (category)     = "Print/Speed",
@@ -4096,7 +4181,8 @@ message PrintSettings {
   ];
 
 
-  float support_speed = 264 [
+  repeated float support_speed = 264 [
+    (is_nullable)     = true,
     (label)     = "Support",
     (tooltip)     = "Speed of support.",
     (category)     = "Print/Speed",
@@ -4111,7 +4197,8 @@ message PrintSettings {
   ];
 
 
-  float top_surface_speed = 265 [
+  repeated float top_surface_speed = 265 [
+    (is_nullable)     = true,
     (label)     = "Top surface",
     (tooltip)     = "Speed of top surface infill which is solid.",
     (category)     = "Print/Speed",
@@ -4126,7 +4213,8 @@ message PrintSettings {
   ];
 
 
-  float travel_speed = 266 [
+  repeated float travel_speed = 266 [
+    (is_nullable)     = true,
     (label)     = "Travel",
     (tooltip)     = "Speed of travel which is faster and without extrusion.",
     (category)     = "Print/Speed",
@@ -5188,6 +5276,38 @@ message PrintSettings {
     (mode)        = MODE_ADVANCED,
     (has_default)  = true,
     (default_value) = "45"
+  ];
+
+
+  float top_layer_direction = 478 [
+    (label)     = "Top layer direction",
+    (tooltip)     = "Fixed angle for the top solid infill and ironing lines.\\nSet to -1 to follow the default solid infill direction.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "°",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (min_value)     = -1,
+    (max_value)     = 360,
+    (mode)        = MODE_SIMPLE,
+    (has_default)  = true,
+    (default_value) = "-1"
+  ];
+
+
+  float bottom_layer_direction = 479 [
+    (label)     = "Bottom layer direction",
+    (tooltip)     = "Fixed angle for the bottom solid infill lines.\\nSet to -1 to follow the default solid infill direction.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "°",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (min_value)     = -1,
+    (max_value)     = 360,
+    (mode)        = MODE_SIMPLE,
+    (has_default)  = true,
+    (default_value) = "-1"
   ];
 
 
@@ -6926,7 +7046,8 @@ message PrintSettings {
   ];
 
 
-  float travel_speed_z = 467 [
+  repeated float travel_speed_z = 467 [
+    (is_nullable)     = true,
     (sidetext)     = "mm/s",
     (min_value)     = 0,
     (mode)        = MODE_DEVELOP,
