@@ -773,8 +773,8 @@ message FilamentSettings {
 
 
   repeated bool adaptive_pressure_advance_overhangs = 45 [
-    (label)     = "Enable adaptive pressure advance for overhangs (beta)",
-    (tooltip)     = "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\\n",
+    (label)     = "Enable adaptive pressure advance within features (beta)",
+    (tooltip)     = "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\\n\\nNot compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\\n\\nThis is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues.",
     (category)     = "Filament/Filament",
     (tab_type)     = "Filament",
     (tab_page)     = "Filament",
@@ -787,8 +787,8 @@ message FilamentSettings {
 
 
   repeated float adaptive_pressure_advance_bridges = 46 [
-    (label)     = "Pressure advance for bridges",
-    (tooltip)     = "Pressure advance value for bridges. Set to 0 to disable.\\n\\nA lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.",
+    (label)     = "Static pressure advance for bridges",
+    (tooltip)     = "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \\nequivalent walls (using adaptive settings if enabled).\\n\\nA lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.",
     (category)     = "Filament/Filament",
     (tab_type)     = "Filament",
     (tab_page)     = "Filament",
