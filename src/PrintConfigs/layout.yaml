@@ -17,6 +17,7 @@ tabs:
               - top_surface_line_width
               - sparse_infill_line_width
               - internal_solid_infill_line_width
+              - bridge_line_width: quality_settings_line_width#bridge
               - support_line_width
           - name: "Seam"
             fields:
@@ -169,12 +170,16 @@ tabs:
               - gap_fill_target
               - filter_out_gap_fill
               - infill_wall_overlap
+              - lightning_overhang_angle: strength_settings_patterns#lightning
+              - lightning_prune_angle: strength_settings_patterns#lightning
+              - lightning_straightening_angle: strength_settings_patterns#lightning
           - name: "Advanced"
             fields:
               - align_infill_direction_to_model
               - extra_solid_infills
               - bridge_angle
               - internal_bridge_angle
+              - relative_bridge_angle: strength_settings_advanced#relative-bridge-angle
               - minimum_sparse_infill_area
               - infill_combination
               - infill_combination_max_layer_height
@@ -483,6 +488,7 @@ tabs:
             fields:
               - close_fan_the_first_x_layers
               - full_fan_speed_layer
+              - initial_layer_fan_speed: material_cooling#first-layer-fan-speed
           - name: "Part cooling fan"
             fields:
               - [fan_min_speed, fan_cooling_layer_time]
