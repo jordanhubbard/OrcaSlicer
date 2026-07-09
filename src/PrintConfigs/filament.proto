@@ -240,6 +240,23 @@ message FilamentSettings {
   ];
 
 
+  repeated int32 initial_layer_fan_speed = 120 [
+    (label)     = "First layer fan speed",
+    (tooltip)     = "Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\\nFrom the second layer onwards, normal cooling resumes.\\nIf \\\"Full fan speed at layer\\\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\\nOnly available when \\\"No cooling for the first\\\" is 0.\\nSet to -1 to disable it.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Cooling for specific layer",
+    (min_value)     = -1,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "-1",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
   repeated bool reduce_fan_stop_start_freq = 14 [
     (label)     = "Keep fan always on",
     (tooltip)     = "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping.",

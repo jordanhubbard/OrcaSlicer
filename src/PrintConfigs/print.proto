@@ -1375,6 +1375,85 @@ message PrintSettings {
   ];
 
 
+  // Granular per-region filament (extruder) assignment. These are the canonical,
+  // struct-backed keys the slicing engine reads (LayerRegion, PerimeterGenerator,
+  // ToolOrdering, …) and that PrintApply/handle_legacy resolve into. The coarse
+  // "Filament for Features" UI settings above (wall_filament, sparse_infill_filament,
+  // solid_infill_filament) map onto these. Registered (so they serialize and don't
+  // throw UnknownOptionException) but intentionally not given tab_* UI to avoid
+  // duplicating the coarse settings' UI.
+  int32 outer_wall_filament_id = 488 [
+    (label)     = "Outer walls",
+    (tooltip)     = "Filament to print outer walls.\n\\\"Default\\\" uses the active object/part filament.",
+    (category)     = "Print/Multimaterial",
+    (gui_type)     = i_enum_open,
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  int32 inner_wall_filament_id = 489 [
+    (label)     = "Inner walls",
+    (tooltip)     = "Filament to print inner walls.\n\\\"Default\\\" uses the active object/part filament.",
+    (category)     = "Print/Multimaterial",
+    (gui_type)     = i_enum_open,
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  int32 internal_solid_filament_id = 490 [
+    (label)     = "Internal solid infill",
+    (tooltip)     = "Filament to print internal solid infill.\n\\\"Default\\\" uses the active object/part filament.",
+    (category)     = "Print/Multimaterial",
+    (gui_type)     = i_enum_open,
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  int32 sparse_infill_filament_id = 491 [
+    (label)     = "Infill",
+    (tooltip)     = "Filament to print internal sparse infill.\n\\\"Default\\\" uses the active object/part filament.",
+    (category)     = "Print/Multimaterial",
+    (gui_type)     = i_enum_open,
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  int32 top_surface_filament_id = 492 [
+    (label)     = "Top surface",
+    (tooltip)     = "Filament to print top surface.\n\\\"Default\\\" uses the active object/part filament.",
+    (category)     = "Print/Multimaterial",
+    (gui_type)     = i_enum_open,
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  int32 bottom_surface_filament_id = 493 [
+    (label)     = "Bottom surface",
+    (tooltip)     = "Filament to print bottom surface.\n\\\"Default\\\" uses the active object/part filament.",
+    (category)     = "Print/Multimaterial",
+    (gui_type)     = i_enum_open,
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
   int32 standby_temperature_delta = 92 [
     (label)     = "Temperature variation",
     (tooltip)     = "Temperature difference to be applied when an extruder is not active. The value is not used when 'idle_temperature' in filament settings is set to non-zero value.",
@@ -3089,6 +3168,24 @@ message PrintSettings {
     (mode)        = MODE_ADVANCED,
     (has_default)  = true,
     (default_value) = "0., false"
+  ];
+
+
+  FloatOrPercent bridge_line_width = 483 [
+    (label)     = "Bridge",
+    (tooltip)     = "Line width of the Bridge. If expressed as a %, it will be computed over the nozzle diameter.\\nRecommended to use with a higher Bridge density or Bridge flow ratio.\\n\\nThe maximum value is 100% or the nozzle diameter.\\nIf set to 0, the line width will match the Internal solid infill width.",
+    (category)     = "Print/Quality",
+    (sidetext)     = "mm or %",
+    (ratio_over)     = "nozzle_diameter",
+    (tab_type)     = "Print",
+    (tab_page)     = "Quality",
+    (tab_optgroup)     = "Line width",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (max_literal)     = 10,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "100., true"
   ];
 
 
@@ -5134,6 +5231,19 @@ message PrintSettings {
   ];
 
 
+  bool relative_bridge_angle = 484 [
+    (label)     = "Relative bridge angle",
+    (tooltip)     = "When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.",
+    (category)     = "Print/Strength",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+
   int32 ensure_vertical_shell_thickness = 323 [
     (label)     = "Ensure vertical shell thickness",
     (tooltip)     = "Add solid infill near sloping surfaces to guarantee the vertical shell thickness (top+bottom solid layers)\\nNone: No solid infill will be added anywhere. Caution: Use this option carefully if your model has sloped surfaces\\nCritical Only: Avoid adding solid infill for walls\\nModerate: Add solid infill for heavily sloping surfaces only\\nAll: Add solid infill for all suitable sloping surfaces\\nDefault value is All.",
@@ -5324,6 +5434,54 @@ message PrintSettings {
     (max_value)     = 100,
     (has_default)  = true,
     (default_value) = "20"
+  ];
+
+
+  float lightning_overhang_angle = 485 [
+    (label)     = "Lightning overhang angle",
+    (tooltip)     = "Maximum overhang angle for Lightning infill support propagation.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "°",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Infill",
+    (min_value)     = 5,
+    (max_value)     = 85,
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "45"
+  ];
+
+
+  float lightning_prune_angle = 486 [
+    (label)     = "Prune angle",
+    (tooltip)     = "Controls how aggressively short or unsupported Lightning branches are pruned.\\nThis angle is converted internally to a per-layer distance.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "°",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Infill",
+    (min_value)     = 5,
+    (max_value)     = 85,
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "45"
+  ];
+
+
+  float lightning_straightening_angle = 487 [
+    (label)     = "Straightening angle",
+    (tooltip)     = "Maximum straightening angle used to simplify Lightning branches.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "°",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Infill",
+    (min_value)     = 5,
+    (max_value)     = 85,
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "45"
   ];
 
 
@@ -6332,9 +6490,6 @@ message PrintSettings {
   bool adaptive_layer_height = 406;
 
 
-  bool spaghetti_detector = 407;
-
-
   int32 wrapping_detection_layers = 408 [
     (label)     = "Clumping detection layers",
     (tooltip)     = "Clumping detection layers.",
@@ -6884,15 +7039,6 @@ message PrintSettings {
     (no_cli)     = true,
     (has_default)  = true,
     (default_value) = "\"Direct Drive Standard\""
-  ];
-
-
-  repeated int32 filament_extruder_id = 453 [
-    (label)     = "Filament extruder id",
-    (tooltip)     = "Filament extruder id.",
-    (no_cli)     = true,
-    (has_default)  = true,
-    (default_value) = "1"
   ];
 
 

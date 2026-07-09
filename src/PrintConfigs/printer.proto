@@ -79,6 +79,13 @@ message PrinterSettings {
   option (virtual_preset_keys) = "wrapping_detection_layers";
   option (virtual_preset_keys) = "wrapping_exclude_area";
   option (virtual_preset_keys) = "z_hop_types";
+  // Printer keys with hand-written defs in init_common_params (not proto fields);
+  // declared here so they land in s_Preset_printer_options and vendor machine
+  // profiles that set them are not stripped on load.
+  option (virtual_preset_keys) = "use_3mf";
+  option (virtual_preset_keys) = "support_parallel_printheads";
+  option (virtual_preset_keys) = "parallel_printheads_count";
+  option (virtual_preset_keys) = "parallel_printheads_bed_exclude_areas";
 
   float extruder_clearance_height_to_rod = 1 [
     (label)     = "Height to rod",
