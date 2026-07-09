@@ -138,11 +138,16 @@ tabs:
               - top_surface_density
               - top_surface_pattern
               - top_layer_direction
+              - top_surface_expansion: strength_settings_top_bottom_shells#surface-expansion
+              - top_surface_expansion_margin: strength_settings_top_bottom_shells#surface-expansion-margin
+              - top_surface_expansion_direction: strength_settings_top_bottom_shells#surface-expansion-direction
               - bottom_shell_layers
               - bottom_shell_thickness
               - bottom_surface_density
               - bottom_surface_pattern
               - bottom_layer_direction
+              - center_of_surface_pattern: strength_settings_top_bottom_shells#center-surface-pattern-on
+              - anisotropic_surfaces: strength_settings_top_bottom_shells#anisotropic-surfaces
               - top_bottom_infill_wall_overlap
           - name: "Infill"
             fields:
@@ -169,6 +174,7 @@ tabs:
               - solid_infill_rotate_template
               - gap_fill_target
               - filter_out_gap_fill
+              - separated_infills: strength_settings_infill#separated-infills
               - infill_wall_overlap
               - lightning_overhang_angle: strength_settings_patterns#lightning
               - lightning_prune_angle: strength_settings_patterns#lightning
@@ -357,6 +363,7 @@ tabs:
           - name: "Advanced"
             fields:
               - interlocking_beam
+              - toolchange_ordering: multimaterial_settings_advanced#toolchange-ordering
               - interface_shells
               - mmu_segmented_region_max_width
               - mmu_segmented_region_interlocking_depth

@@ -5297,6 +5297,129 @@ message PrintSettings {
   ];
 
 
+  float top_surface_expansion = 494 [
+    (label)     = "Top surface expansion",
+    (tooltip)     = "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\\nUseful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "mm",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  float top_surface_expansion_margin = 495 [
+    (label)     = "Top expansion wall margin",
+    (tooltip)     = "Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\\nThis can cause contraction marks (such as the hull line) on the outer walls.\\nBy adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark.",
+    (category)     = "Print/Strength",
+    (sidetext)     = "mm",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (min_value)     = 0,
+    (max_value)     = 10,
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+
+  int32 top_surface_expansion_direction = 496 [
+    (label)     = "Top expansion direction",
+    (tooltip)     = "Direction in which the top surface expansion grows.\\n - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\\n - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\\n - Inward and Outward does both.",
+    (category)     = "Print/Strength",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<TopSurfaceExpansionDirection>::get_enum_values()",
+    (co_type_hint)     = coEnum,
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "TopSurfaceExpansionDirection::InwardAndOutward",
+    (enum_value_entries) = "inward_and_outward",
+    (enum_value_entries) = "inward",
+    (enum_value_entries) = "outward",
+    (enum_label_entries) = "Inward and Outward",
+    (enum_label_entries) = "Inward",
+    (enum_label_entries) = "Outward"
+  ];
+
+
+  int32 center_of_surface_pattern = 498 [
+    (label)     = "Center surface pattern on",
+    (tooltip)     = "Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\\n - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\\n - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\\n - Each Assembly: uses a single shared center for the whole object or assembly.",
+    (category)     = "Print/Strength",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<CenterOfSurfacePattern>::get_enum_values()",
+    (co_type_hint)     = coEnum,
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "CenterOfSurfacePattern::Each_Surface",
+    (enum_value_entries) = "each_surface",
+    (enum_value_entries) = "each_model",
+    (enum_value_entries) = "each_assembly",
+    (enum_label_entries) = "Each Surface",
+    (enum_label_entries) = "Each Model",
+    (enum_label_entries) = "Each Assembly",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  bool anisotropic_surfaces = 497 [
+    (label)     = "Anisotropic surfaces",
+    (tooltip)     = "Anisotropic patterns on the top and bottom surfaces.\\nCo-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\\nThis option disable the gap fill.\\nThis option can increase a printing time.",
+    (category)     = "Print/Strength",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Top/bottom shells",
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  bool separated_infills = 499 [
+    (label)     = "Separated infills",
+    (tooltip)     = "Aligns the internal infill pattern of each part independently instead of across the whole object or assembly.\\nBy default, aligned infill patterns share a single origin for the entire object, so the pattern of every part is referenced to the same point. When enabled, each connected body is aligned on its own: parts that touch or overlap are treated as one body and share an origin, while parts detached from the rest each get their own.\\n Useful when an assembly groups several distinct objects that should each keep a self-centered infill.\\nOnly affects centered infill patterns (Archimedean Chords, Octagram Spiral) and patterns driven by an infill rotation template.",
+    (category)     = "Print/Strength",
+    (tab_type)     = "Print",
+    (tab_page)     = "Strength",
+    (tab_optgroup)     = "Infill",
+    (mode)        = MODE_EXPERT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  int32 toolchange_ordering = 500 [
+    (label)     = "Toolchange ordering",
+    (tooltip)     = "Determines the order of tool changes on each layer.\\n- Default: Starts with the last used extruder to minimize tool changes.\\n- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool.",
+    (category)     = "Print/Multimaterial",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<ToolChangeOrderingType>::get_enum_values()",
+    (co_type_hint)     = coEnum,
+    (tab_type)     = "Print",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (has_default)  = true,
+    (default_value) = "ToolChangeOrderingType::Default",
+    (enum_value_entries) = "default",
+    (enum_value_entries) = "cyclic",
+    (enum_label_entries) = "Default",
+    (enum_label_entries) = "Cyclic",
+    (invalidates) = STEP_WIPE_TOWER,
+    (invalidates) = STEP_SKIRT_BRIM
+  ];
+
+
   int32 bottom_surface_pattern = 325 [
     (label)     = "Bottom surface pattern",
     (tooltip)     = "Line pattern of bottom surface infill, not bridge infill.",
