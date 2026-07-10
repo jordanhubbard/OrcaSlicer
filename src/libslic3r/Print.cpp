@@ -1,4 +1,4 @@
-﻿#include "Config.hpp"
+#include "Config.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"

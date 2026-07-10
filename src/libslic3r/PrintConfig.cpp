@@ -1,4 +1,4 @@
-﻿#include "PrintConfig.hpp"
+#include "PrintConfig.hpp"
 #include "PrintConfigConstants.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
