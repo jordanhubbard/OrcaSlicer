@@ -325,6 +325,10 @@ bool FlashForgePrinterAgent::start_discovery(bool start, bool sending)
         j["dev_id"]        = dev_id;
         j["dev_name"]      = dev_id;
         j["dev_ip"]        = dev_ip;
+        // dev_type / dev_signal are read unconditionally by DeviceManager::on_machine_alive;
+        // omitting them makes it throw and the device is silently dropped from the list.
+        j["dev_type"]      = dev_id; // TODO: use the M115 machine model when available
+        j["dev_signal"]    = "0";
         j["connect_type"]  = "lan";
         j["bind_state"]    = "free";
         j["sec_link"]      = "secure";
@@ -385,6 +389,9 @@ bool FlashForgePrinterAgent::start_discovery(bool start, bool sending)
                 j["dev_id"]        = dev_id;
                 j["dev_name"]      = name.empty() ? dev_id : name;
                 j["dev_ip"]        = ip;
+                // Required by DeviceManager::on_machine_alive (throws if missing).
+                j["dev_type"]      = name.empty() ? dev_id : name;
+                j["dev_signal"]    = "0";
                 j["connect_type"]  = "lan";
                 j["bind_state"]    = "free";
                 j["sec_link"]      = "secure";
@@ -653,8 +660,11 @@ void FlashForgePrinterAgent::status_poll_loop(std::string dev_id, uint64_t gener
                     print["gcode_file"]   = status.current_file;
                     print["subtask_name"] = status.current_file;
                 }
-                if (status.led >= 0)
-                    print["lights_report"] = status.led ? "on" : "off";
+                if (status.led >= 0) {
+                    // Parser expects an array of {node, mode} objects, not a bare string.
+                    print["lights_report"] = nlohmann::json::array(
+                        { {{"node", "chamber_light"}, {"mode", status.led ? "on" : "off"}} });
+                }
             }
             if (ok_t) {
                 print["nozzle_temper"]        = temps.t0_current;
@@ -671,7 +681,8 @@ void FlashForgePrinterAgent::status_poll_loop(std::string dev_id, uint64_t gener
                 std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::system_clock::now().time_since_epoch())
                     .count());
-            print["t_utc"] = now_ms;
+            // The parser reads t_utc at the TOP level of the payload, not inside "print".
+            payload["t_utc"] = now_ms;
 
             dispatch_message(dev_id, payload.dump());
         }

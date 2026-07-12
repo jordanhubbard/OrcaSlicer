@@ -4,6 +4,7 @@
 	"inherits": "fdm_flashforge_common",
 	"from": "system",
 	"instantiation": "false",
+	"printer_agent": "flashforge",
 	"gcode_flavor": "klipper",
 	"printable_area": [
 		"-110x-110",
