@@ -15,6 +15,7 @@
         "Flashforge HS PLA @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "2L7FS5JeAyPb3y0s",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

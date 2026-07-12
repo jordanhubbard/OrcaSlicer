@@ -12,6 +12,7 @@
         "Flashforge PLA Silk @FF Adventurer A5 0.25 nozzle"
     ],
     "from": "system",
+    "setting_id": "ipe3qzXePPZ9pMmY",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.25 nozzle"

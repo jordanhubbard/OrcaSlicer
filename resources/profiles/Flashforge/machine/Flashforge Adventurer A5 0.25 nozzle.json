@@ -41,6 +41,7 @@
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
     "from": "system",
+	"setting_id": "TZyRxvTiJNKNJWCD",
 	"instantiation": "true",
     "gcode_flavor": "klipper",
     "head_wrap_detect_zone": [],

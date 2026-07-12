@@ -15,6 +15,7 @@
         "Flashforge PLA Luminous @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "GqNeJoH4M1IVAXrZ",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

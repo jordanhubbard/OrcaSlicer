@@ -6,6 +6,7 @@
         "Generic PETG @FF Adventurer A5 0.25 nozzle"
     ],
     "from": "system",
+    "setting_id": "KSKX6BHNQgmOEShO",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.25 nozzle"

@@ -15,6 +15,7 @@
         "Flashforge PLA Sparkle @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "dscnwSfbrGWiS4Um",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

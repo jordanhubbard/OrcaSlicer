@@ -12,6 +12,7 @@
         "Flashforge PLA Matte @FF Adventurer A5 0.25 nozzle"
     ],
     "from": "system",
+    "setting_id": "o2Ttw4qaxOTgEWtp",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.25 nozzle"

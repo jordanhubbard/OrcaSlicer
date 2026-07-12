@@ -33,6 +33,7 @@
         "Flashforge PETG Pro @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "rPy6e6kaIt2tI34j",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

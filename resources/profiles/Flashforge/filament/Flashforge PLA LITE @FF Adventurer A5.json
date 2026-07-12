@@ -18,6 +18,7 @@
         "Flashforge PLA LITE @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "2QZaQyg66IJPbsSc",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

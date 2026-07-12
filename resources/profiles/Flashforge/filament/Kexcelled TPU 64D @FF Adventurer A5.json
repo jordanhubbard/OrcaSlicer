@@ -15,6 +15,7 @@
         "Kexcelled TPU 64D @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "OB4I8nwZn8sCcCcF",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

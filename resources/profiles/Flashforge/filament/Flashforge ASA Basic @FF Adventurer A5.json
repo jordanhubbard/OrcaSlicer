@@ -15,6 +15,7 @@
         "Flashforge ASA Basic @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "FY9mcqOyuu1Gqq1m",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",

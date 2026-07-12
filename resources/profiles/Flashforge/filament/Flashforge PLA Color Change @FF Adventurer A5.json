@@ -15,6 +15,7 @@
         "Flashforge PLA Color Change @FF Adventurer A5"
     ],
     "from": "system",
+    "setting_id": "o1Fl6t8nFCKZoj3Q",
     "instantiation": "true",
     "compatible_printers": [
       "Flashforge Adventurer A5 0.4 nozzle",
