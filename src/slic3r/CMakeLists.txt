@@ -677,6 +677,21 @@ set(SLIC3R_GUI_SOURCES
     Utils/FileTransferUtils.hpp
 )
 
+# FlashForge printer support: an OPEN implementation of IPrinterAgent that speaks
+# the classic FlashForge "M-code over TCP" LAN protocol directly (port 8899) via
+# boost::asio. No closed library. Both the source add and the factory
+# registration are gated on this option (via the ORCA_ENABLE_FLASHFORGE
+# compile definition).
+option(ORCA_ENABLE_FLASHFORGE "Enable FlashForge printer support" ON)
+if (ORCA_ENABLE_FLASHFORGE)
+    list(APPEND SLIC3R_GUI_SOURCES
+        Utils/FlashForgePrinterAgent.cpp
+        Utils/FlashForgePrinterAgent.hpp
+        Utils/FlashForge/FFLanProtocol.cpp
+        Utils/FlashForge/FFLanProtocol.hpp
+    )
+endif ()
+
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)
 
@@ -747,6 +762,9 @@ else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+
+# Gate both the FlashForge sources and their registration in NetworkAgentFactory.
+target_compile_definitions(libslic3r_gui PRIVATE $<$<BOOL:${ORCA_ENABLE_FLASHFORGE}>:ORCA_ENABLE_FLASHFORGE>)
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)

@@ -7,6 +7,9 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "CrealityPrintAgent.hpp"
+#ifdef ORCA_ENABLE_FLASHFORGE
+#include "FlashForgePrinterAgent.hpp"
+#endif
 #include <boost/log/trivial.hpp>
 #include <map>
 #include <mutex>
@@ -151,6 +154,23 @@ void NetworkAgentFactory::register_all_agents()
                                    return agent;
                                });
     }
+
+#ifdef ORCA_ENABLE_FLASHFORGE
+    // FlashForgePrinterAgent takes no constructor args (it opens its own LAN TCP
+    // socket on demand), so register manually like BBLPrinterAgent. Only
+    // activates for profiles whose printer_agent == "flashforge".
+    {
+        auto info = FlashForgePrinterAgent::get_agent_info_static();
+        register_printer_agent(info.id, info.name,
+                               [](std::shared_ptr<ICloudServiceAgent> cloud_agent,
+                                  const std::string& /*log_dir*/) -> std::shared_ptr<IPrinterAgent> {
+                                   auto agent = std::make_shared<FlashForgePrinterAgent>();
+                                   if (cloud_agent)
+                                       agent->set_cloud_agent(cloud_agent);
+                                   return agent;
+                               });
+    }
+#endif
 }
 
 std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_dir, AppConfig* app_config)
