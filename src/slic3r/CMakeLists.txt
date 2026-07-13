@@ -571,6 +571,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/wxExtensions.hpp
     pchheader.cpp
     pchheader.hpp
+    Utils/AIProvider.cpp
+    Utils/AIProvider.hpp
     Utils/ASCIIFolding.cpp
     Utils/ASCIIFolding.hpp
     Utils/AstroBox.cpp
