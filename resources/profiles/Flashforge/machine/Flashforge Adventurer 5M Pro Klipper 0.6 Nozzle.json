@@ -1,0 +1,30 @@
+{
+    "type": "machine",
+    "name": "Flashforge Adventurer 5M Pro Klipper 0.6 Nozzle",
+    "inherits": "fdm_adventurer5m_common",
+    "from": "system",
+    "setting_id": "w3WlNCIc6iBuncKK",
+    "instantiation": "true",
+    "printer_model": "Flashforge Adventurer 5M Pro Klipper",
+    "default_print_profile": "0.30mm Standard @Flashforge AD5M Pro 0.6 Nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.15"
+    ],
+    "retraction_length": [
+        "1.2"
+    ],
+    "nozzle_type": "hardened_steel",
+    "printer_settings_id": "Flashforge Adventurer 5M Pro Klipper 0.6 Nozzle",
+    "machine_start_gcode": "START_PRINT BED_TEMP=[bed_temperature_initial_layer_single] EXTRUDER_TEMP=[nozzle_temperature_initial_layer]",
+    "machine_end_gcode": "END_PRINT",
+    "machine_pause_gcode": "PAUSE",
+    "host_type": "octoprint",
+    "printer_notes": "OFF-ROAD: runs the xblax flashforge_ad5m_klipper_mod (Mainsail/Moonraker), NOT stock FF firmware. Start/End use the mod's START_PRINT/END_PRINT macros. Connect via Physical Printer -> OctoPrint host, URL http://<printer-ip>:7125 (Moonraker). Do NOT accept stock FF firmware updates."
+}
