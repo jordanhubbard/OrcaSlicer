@@ -1,0 +1,33 @@
+schema: mac.repository_contract.v1
+project: OrcaSlicer-AD5M-Klipper
+
+platforms:
+  - linux
+  - darwin
+
+toolchain:
+  required_commands:
+    - git
+    - python3
+
+bootstrap:
+  command: "true"
+  creates: []
+
+test:
+  command: >-
+    python3 -c "import json,glob;
+    [json.load(open(f)) for f in glob.glob('resources/profiles/Flashforge.json')];
+    [json.load(open(f)) for f in glob.glob('resources/profiles/Flashforge/**/*.json', recursive=True)];
+    print('all Flashforge profile JSON valid')"
+
+evidence:
+  required:
+    - repo.head_sha
+    - repo.pushed
+    - repo.dirty
+    - repo.files_changed
+    - tests
+
+canonical_remote_url: "git@github.com:jordanhubbard/OrcaSlicer.git"
+contract_path: .mac/project.yaml
