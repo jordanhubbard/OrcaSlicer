@@ -22,6 +22,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/FilamentLoad.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
+    GUI/AISettingsDialog.cpp
+    GUI/AISettingsDialog.hpp
     GUI/AmsMappingPopup.cpp
     GUI/AmsMappingPopup.hpp
     GUI/AMSMaterialsSetting.cpp
