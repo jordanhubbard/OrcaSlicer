@@ -114,7 +114,7 @@ wxWindow *AISlicerDialog::build_generate_tab(wxNotebook *nb)
 
 // Result shared between the worker thread (fills it) and the finish handler
 // (consumes it on the main thread).
-namespace { struct AIGenResult { Model model; std::string error; bool ok = false; }; }
+namespace { struct AIGenResult { Model model; std::string error; std::string warn; bool ok = false; }; }
 
 void AISlicerDialog::on_generate()
 {
@@ -186,33 +186,75 @@ void AISlicerDialog::on_generate()
 
     Worker &worker = wxGetApp().plater()->get_ui_job_worker();
     replace_job(worker,
-        // ---- worker thread: the blocking LLM round-trip + geometry build ----
-        [cfg, messages, params, name, result](Job::Ctl &ctl) {
-            ctl.update_status(15, "Contacting the AI...");
+        // ---- worker thread: LLM round-trip + geometry build, with a repair loop
+        // (generate -> build/validate -> feed the error back -> regenerate) ----
+        [cfg, messages, params, name, result, bx, by, bz](Job::Ctl &ctl) {
             std::unique_ptr<AIProvider> provider(AIProvider::create(cfg));
             if (! provider) { result->error = "No AI provider configured."; return; }
-            AIResponse resp = provider->chat(*messages, *params);
-            if (ctl.was_canceled()) return;
-            if (! resp.ok) { result->error = "AI request failed: " + resp.error; return; }
-            ctl.update_status(70, "Building geometry...");
-            bool built;
-            if (! resp.tool_call_arguments.empty())
-                built = ai_build_model_from_tool_call(resp.tool_call_arguments, name, result->model, result->error);
-            else if (! resp.content.empty())
-                built = ai_build_model_from_response(resp.content, name, result->model, result->error);
-            else {
-                result->error = "This model returned no shape (it didn't call the create_model tool), "
-                                "so it isn't suitable for 3D generation. Try a recommended model such as "
-                                "a llama-3.x-instruct or a code model.";
-                built = false;
+
+            const int MAX_REPAIRS = 2;
+            for (int attempt = 0; attempt <= MAX_REPAIRS; ++attempt) {
+                ctl.update_status(attempt == 0 ? 15 : 45,
+                                  attempt == 0 ? "Contacting the AI..." : "Fixing the design...");
+                AIResponse resp = provider->chat(*messages, *params);
+                if (ctl.was_canceled()) return;
+                if (! resp.ok) { result->error = "AI request failed: " + resp.error; return; } // network: no retry
+
+                ctl.update_status(70, "Building geometry...");
+                Model candidate;
+                std::string berr, produced = resp.tool_call_arguments;
+                bool built = false;
+                if (! resp.tool_call_arguments.empty())
+                    built = ai_build_model_from_tool_call(resp.tool_call_arguments, name, candidate, berr);
+                else if (! resp.content.empty()) {
+                    produced = resp.content;
+                    built = ai_build_model_from_response(resp.content, name, candidate, berr);
+                } else {
+                    // Talky model — no point retrying; this is the unsuitable-model signal.
+                    result->error = "This model returned no shape (it didn't call the create_model tool), "
+                                    "so it isn't suitable for 3D generation. Try a recommended model such as "
+                                    "a llama-3.x-instruct or a code model.";
+                    return;
+                }
+
+                // Validate: did it build, and does it fit the bed?
+                std::string problem;
+                if (! built || candidate.objects.empty())
+                    problem = berr.empty() ? "the shape could not be built" : berr;
+                else {
+                    std::string warn;
+                    if (! ai_model_fits_bed(candidate, bx, by, bz, warn))
+                        problem = warn + " Make it smaller so it fits.";
+                }
+
+                if (problem.empty()) {                       // success
+                    result->model = std::move(candidate);
+                    result->ok    = true;
+                    ctl.update_status(100, "");
+                    return;
+                }
+                if (attempt == MAX_REPAIRS) {                // give up repairing
+                    if (built && ! candidate.objects.empty()) { // over-volume but usable: accept + warn
+                        result->model = std::move(candidate);
+                        result->ok    = true;
+                        result->warn  = problem;
+                    } else {
+                        result->error = "Couldn't produce a valid shape after " + std::to_string(MAX_REPAIRS + 1) +
+                                        " tries. Last problem: " + problem;
+                    }
+                    return;
+                }
+                // Feed the problem back and let the model correct itself.
+                AIMessage fix;
+                fix.role    = "user";
+                fix.content = "Your previous create_model result had a problem: " + problem +
+                              "\nCall create_model again with a corrected shape. Your previous attempt was:\n" +
+                              produced.substr(0, 1500);
+                messages->push_back(std::move(fix));
             }
-            if (! built) return;
-            if (result->model.objects.empty()) { result->error = "The AI did not return a usable shape."; return; }
-            result->ok = true;
-            ctl.update_status(100, "");
         },
         // ---- main thread: drop the object on the plate + report ----
-        [self, result, bx, by, bz](bool canceled, std::exception_ptr &eptr) {
+        [self, result](bool canceled, std::exception_ptr &eptr) {
             wxString msg; bool err = false;
             if (canceled) { msg = _L("Generation canceled."); err = true; }
             else if (eptr) {
@@ -223,8 +265,6 @@ void AISlicerDialog::on_generate()
             }
             else if (! result->ok) { msg = from_u8(result->error); err = true; }
             else {
-                std::string warn;
-                const bool fits = ai_model_fits_bed(result->model, bx, by, bz, warn);
                 Plater *plater = wxGetApp().plater();
                 plater->take_snapshot(into_u8(_L("Add AI generated object")));
                 Model &model = plater->model();
@@ -237,9 +277,9 @@ void AISlicerDialog::on_generate()
                 wxGetApp().obj_list()->paste_objects_into_list(idxs);
                 if (auto *canvas = plater->get_view3D_canvas3D())
                     canvas->reload_scene(true);
-                msg = fits ? _L("Added the generated object to the plate.")
-                           : from_u8(warn) + " " + _L("Added anyway — scale it to fit.");
-                err = ! fits;
+                if (result->warn.empty())
+                    msg = _L("Added the generated object to the plate.");
+                else { msg = from_u8(result->warn) + " " + _L("Added anyway — scale it to fit."); err = true; }
             }
             if (self) {
                 self->set_status(msg, err);
