@@ -232,27 +232,54 @@ bool ai_build_model_from_stl(const std::string &stl_bytes, const std::string &na
     }
 }
 
+// One-line snippet of arbitrary text for user-facing error messages / logs.
+static std::string snippet_of(const std::string &s, std::size_t n = 240)
+{
+    std::string out = s.substr(0, n);
+    for (char &c : out) if (c == '\n' || c == '\r' || c == '\t') c = ' ';
+    if (s.size() > n) out += "...";
+    return out;
+}
+
 bool ai_build_model_from_response(const std::string &response, const std::string &name, Model &out_model, std::string &error)
 {
-    const std::string s = strip_code_fence(response);
-    if (s.empty()) { error = "empty AI response"; return false; }
+    // Always log the raw response so failures are diagnosable from the log file.
+    BOOST_LOG_TRIVIAL(info) << "AIShapeGen: raw AI response (" << response.size()
+                            << " bytes): " << snippet_of(response, 4000);
 
-    // JSON shape spec?
-    std::size_t first = s.find_first_not_of(" \t\r\n");
-    if (first != std::string::npos && s[first] == '{') {
+    const std::string s = strip_code_fence(response);
+    if (s.empty()) { error = "The AI returned an empty response."; return false; }
+
+    // Locate a JSON object anywhere in the reply — models often wrap the spec in
+    // prose or a code fence, so don't require it to be the very first character.
+    std::size_t lb = s.find('{');
+    std::size_t rb = s.rfind('}');
+    if (lb != std::string::npos && rb != std::string::npos && rb > lb) {
+        const std::string candidate = s.substr(lb, rb - lb + 1);
         try {
-            json spec = json::parse(s);
-            return ai_build_model_from_spec(spec, name, out_model, error);
-        } catch (const std::exception &) {
-            // not valid JSON; fall through to STL handling
+            json spec = json::parse(candidate);
+            std::string spec_err;
+            if (ai_build_model_from_spec(spec, name, out_model, spec_err))
+                return true;
+            // Valid JSON, but not a usable shape spec — report the specific reason.
+            BOOST_LOG_TRIVIAL(warning) << "AIShapeGen: JSON is not a valid shape spec: " << spec_err
+                                       << " | json: " << snippet_of(candidate, 1500);
+            error = "The AI returned JSON, but it isn't a valid shape spec: " + spec_err;
+            return false;
+        } catch (const std::exception &e) {
+            BOOST_LOG_TRIVIAL(info) << "AIShapeGen: JSON parse failed (" << e.what()
+                                    << ") on: " << snippet_of(candidate, 1500);
         }
     }
 
-    // Raw STL? (ASCII starts with "solid"; binary is arbitrary bytes.)
-    if (s.find("solid") != std::string::npos || s.find("facet") != std::string::npos)
+    // Raw STL fallback (ASCII STL contains both "solid" and "facet").
+    if (s.find("solid") != std::string::npos && s.find("facet") != std::string::npos)
         return ai_build_model_from_stl(s, name, out_model, error);
 
-    error = "AI response was neither a JSON shape spec nor STL data";
+    // Nothing usable — surface what the model actually said, plus a scope hint.
+    error = "The AI didn't return a usable shape. It replied: \"" + snippet_of(s) + "\"  "
+            "This generator builds parametric shapes (boxes, cylinders, spheres, and boolean cuts), "
+            "so mechanical parts work best — organic shapes (animals, faces, etc.) aren't supported.";
     return false;
 }
 

@@ -15,6 +15,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/utils.h>
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -61,7 +62,7 @@ AISlicerDialog::AISlicerDialog(wxWindow *parent)
 
     auto *nb = new wxNotebook(this, wxID_ANY);
     nb->AddPage(build_generate_tab(nb), _L("Generate shape"), true);
-    nb->AddPage(build_search_tab(nb),   _L("Search & import"), false);
+    nb->AddPage(build_search_tab(nb),   _L("Find models"), false);
 
     auto *close_btn = new Button(this, _L("Close"));
     close_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_CLOSE); });
@@ -193,32 +194,24 @@ void AISlicerDialog::set_status(const wxString &msg, bool error)
     Layout();
 }
 
-// --- Search & Import -------------------------------------------------------
+// --- Search on the web (open the site's own search in the browser) ----------
+//
+// A plain LLM cannot return working download URLs: it has no live web access, and
+// the model repositories gate downloads behind sign-in / anti-bot. So rather than
+// try to fetch a file directly (which yields 403/404/DNS errors), we hand the
+// query to each site's real search page in the user's browser, where their normal
+// (signed-in) download flow works. The file is then loaded via File > Import.
 
-// True if the URL's path ends in a model extension we can load.
-static bool is_supported_model_url(const std::string &url)
+static std::string url_encode(const std::string &s)
 {
-    std::string path = url;
-    auto q = path.find_first_of("?#");
-    if (q != std::string::npos) path = path.substr(0, q);
-    std::string lower = path;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c) { return (char) std::tolower(c); });
-    for (const char *ext : {".stl", ".3mf", ".obj", ".step", ".stp"})
-        if (lower.size() >= std::strlen(ext) && lower.compare(lower.size() - std::strlen(ext), std::strlen(ext), ext) == 0)
-            return true;
-    return false;
-}
-
-static std::string filename_from_url(const std::string &url)
-{
-    std::string path = url;
-    auto q = path.find_first_of("?#");
-    if (q != std::string::npos) path = path.substr(0, q);
-    auto slash = path.find_last_of('/');
-    std::string name = (slash == std::string::npos) ? path : path.substr(slash + 1);
-    if (name.empty()) name = "ai_model.stl";
-    return name;
+    static const char *hex = "0123456789ABCDEF";
+    std::string out;
+    for (unsigned char c : s) {
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+            out += static_cast<char>(c);
+        else { out += '%'; out += hex[c >> 4]; out += hex[c & 0x0F]; }
+    }
+    return out;
 }
 
 wxWindow *AISlicerDialog::build_search_tab(wxNotebook *nb)
@@ -226,24 +219,39 @@ wxWindow *AISlicerDialog::build_search_tab(wxNotebook *nb)
     auto *panel = new wxPanel(nb, wxID_ANY);
     auto *s = new wxBoxSizer(wxVERTICAL);
 
-    s->Add(new wxStaticText(panel, wxID_ANY, _L("Search the web for a model to import:")),
+    s->Add(new wxStaticText(panel, wxID_ANY,
+               _L("Find a model on a printing site, then download it there and load it with File > Import:")),
            0, wxALL, FromDIP(10));
 
-    auto *query_row = new wxBoxSizer(wxHORIZONTAL);
-    m_query = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(320), -1), wxTE_PROCESS_ENTER);
-    m_search_btn = new Button(panel, _L("Search"));
-    m_search_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { on_search(); });
-    m_query->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) { on_search(); });
-    query_row->Add(m_query, 1, wxRIGHT, FromDIP(8));
-    query_row->Add(m_search_btn, 0);
-    s->Add(query_row, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
+    m_query = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(420), -1), wxTE_PROCESS_ENTER);
+    s->Add(m_query, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
 
-    m_results_list = new wxListBox(panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(420), FromDIP(140)));
-    s->Add(m_results_list, 1, wxEXPAND | wxALL, FromDIP(10));
+    // One button per repository — each opens that site's search results in the browser.
+    struct Site { const wchar_t *name; const char *prefix; const char *suffix; };
+    static const Site kSites[] = {
+        { L"Printables",  "https://www.printables.com/search/models?q=",      ""             },
+        { L"MakerWorld",  "https://makerworld.com/en/search/models?keyword=", ""             },
+        { L"Thingiverse", "https://www.thingiverse.com/search?q=",            "&type=things" },
+        { L"Thangs",      "https://thangs.com/search/",                       "?scope=all"   },
+    };
+    auto *btn_row = new wxBoxSizer(wxHORIZONTAL);
+    for (const auto &site : kSites) {
+        auto *b = new Button(panel, wxString(site.name));
+        const std::string prefix = site.prefix, suffix = site.suffix;
+        b->Bind(wxEVT_BUTTON, [this, prefix, suffix](wxCommandEvent &) { open_model_search(prefix, suffix); });
+        btn_row->Add(b, 0, wxRIGHT, FromDIP(8));
+    }
+    s->Add(btn_row, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
 
-    m_import_btn = new Button(panel, _L("Import selected"));
-    m_import_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { on_import(); });
-    s->Add(m_import_btn, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+    // Enter opens the first site (Printables).
+    m_query->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) {
+        open_model_search("https://www.printables.com/search/models?q=", "");
+    });
+
+    s->Add(new wxStaticText(panel, wxID_ANY,
+               _L("These are community model sites; most let you download after a free sign-in. "
+                  "Save the .stl/.3mf, then load it with File > Import.")),
+           0, wxALL, FromDIP(10));
 
     m_search_status = new wxStaticText(panel, wxID_ANY, "");
     s->Add(m_search_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
@@ -252,119 +260,13 @@ wxWindow *AISlicerDialog::build_search_tab(wxNotebook *nb)
     return panel;
 }
 
-void AISlicerDialog::on_search()
+void AISlicerDialog::open_model_search(const std::string &url_prefix, const std::string &url_suffix)
 {
-    const wxString queryw = m_query->GetValue();
-    if (queryw.IsEmpty()) { set_search_status(_L("Enter a search query first."), true); return; }
-
-    auto *ac = wxGetApp().app_config;
-    std::unique_ptr<AIProvider> provider(
-        ac ? AIProvider::create(AIProvider::config_from_app_config(*ac)) : nullptr);
-    if (! provider) {
-        set_search_status(_L("No AI provider is configured. Open AI Settings first."), true);
-        return;
-    }
-
-    std::vector<AIMessage> messages;
-    AIMessage sys;
-    sys.role    = "system";
-    sys.content =
-        "You are a search assistant for 3D-printable models. Given the user's request, return ONLY a "
-        "JSON array (no prose) of up to 8 directly-downloadable 3D model files. Each item is "
-        "{\"title\":string,\"url\":string,\"source\":string}. Each url MUST be a direct, publicly "
-        "downloadable link ending in .stl, .3mf, .obj, .step or .stp, and must respect the host's terms "
-        "of use. If you are unsure a link is valid, omit it. Return [] if you cannot find any.";
-    messages.push_back(std::move(sys));
-    AIMessage user; user.role = "user"; user.content = into_u8(queryw);
-    messages.push_back(std::move(user));
-
-    set_search_status(_L("Searching..."));
-    AIResponse resp;
-    {
-        wxBusyCursor wait;
-        resp = provider->chat(messages);
-    }
-    if (! resp.ok) { set_search_status(_L("Search failed: ") + from_u8(resp.error), true); return; }
-
-    // Extract the JSON array from the reply.
-    std::string body = resp.content;
-    auto lb = body.find('['), rb = body.rfind(']');
-    if (lb == std::string::npos || rb == std::string::npos || rb < lb) {
-        set_search_status(_L("The AI did not return any results."), true);
-        return;
-    }
-    m_results_list->Clear();
-    m_result_urls.clear();
-    try {
-        nlohmann::json arr = nlohmann::json::parse(body.substr(lb, rb - lb + 1));
-        for (const auto &item : arr) {
-            if (! item.is_object()) continue;
-            const std::string url = item.value("url", std::string());
-            if (url.empty() || ! is_supported_model_url(url)) continue;
-            const std::string title  = item.value("title",  std::string("(untitled)"));
-            const std::string source = item.value("source", std::string());
-            m_result_urls.push_back(url);
-            wxString label = from_u8(title);
-            if (! source.empty()) label += " — " + from_u8(source);
-            m_results_list->Append(label);
-        }
-    } catch (const std::exception &e) {
-        set_search_status(_L("Could not parse the search results: ") + from_u8(e.what()), true);
-        return;
-    }
-
-    if (m_result_urls.empty())
-        set_search_status(_L("No directly-downloadable models were found. Try a different query."), true);
-    else
-        set_search_status(wxString::Format(_L("Found %d model(s). Select one and Import."), (int) m_result_urls.size()));
-}
-
-void AISlicerDialog::on_import()
-{
-    const int sel = m_results_list->GetSelection();
-    if (sel == wxNOT_FOUND || sel < 0 || sel >= (int) m_result_urls.size()) {
-        set_search_status(_L("Select a model from the list first."), true);
-        return;
-    }
-    const std::string url = m_result_urls[sel];
-
-    std::string dir = wxGetApp().app_config ? wxGetApp().app_config->get("download_path") : std::string();
-    if (dir.empty())
-        dir = data_dir();
-
-    boost::filesystem::path out;
-    std::string body;
-    bool ok = false;
-    std::string err;
-    set_search_status(_L("Downloading..."));
-    {
-        wxBusyCursor wait;
-        Http::get(url)
-            .size_limit(static_cast<size_t>(256) * 1024 * 1024)
-            .on_complete([&](std::string b, unsigned status) { if (status >= 200 && status < 300) { body = std::move(b); ok = true; } })
-            .on_error([&](std::string, std::string error, unsigned status) {
-                err = error.empty() ? ("HTTP " + std::to_string(status)) : error;
-            })
-            .perform_sync();
-    }
-    if (! ok || body.empty()) { set_search_status(_L("Download failed: ") + from_u8(err), true); return; }
-
-    try {
-        out = boost::filesystem::path(dir) / filename_from_url(url);
-        std::ofstream f(out.string(), std::ios::binary);
-        if (! f) { set_search_status(_L("Could not write the downloaded file."), true); return; }
-        f.write(body.data(), static_cast<std::streamsize>(body.size()));
-    } catch (const std::exception &e) {
-        set_search_status(_L("Could not save the model: ") + from_u8(e.what()), true);
-        return;
-    }
-
-    auto idxs = wxGetApp().plater()->load_files(std::vector<std::string>{ out.string() },
-                                                LoadStrategy::LoadModel, false);
-    if (idxs.empty())
-        set_search_status(_L("Downloaded, but the model could not be loaded."), true);
-    else
-        set_search_status(_L("Imported the model onto the plate."));
+    const std::string q = into_u8(m_query->GetValue());
+    if (q.empty()) { set_search_status(_L("Type what you're looking for first."), true); return; }
+    const std::string url = url_prefix + url_encode(q) + url_suffix;
+    wxLaunchDefaultBrowser(from_u8(url));
+    set_search_status(_L("Opened the search in your browser."));
 }
 
 void AISlicerDialog::set_search_status(const wxString &msg, bool error)

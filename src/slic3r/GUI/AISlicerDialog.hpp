@@ -10,7 +10,6 @@ class Button;
 class wxTextCtrl;
 class wxStaticText;
 class wxNotebook;
-class wxListBox;
 
 namespace Slic3r { namespace GUI {
 
@@ -35,8 +34,8 @@ private:
     wxWindow *build_generate_tab(wxNotebook *nb);
     wxWindow *build_search_tab(wxNotebook *nb);
     void      on_generate();
-    void      on_search();
-    void      on_import();
+    // Open the query on a model repository's own search page in the browser.
+    void      open_model_search(const std::string &url_prefix, const std::string &url_suffix);
     void      set_status(const wxString &msg, bool error = false);
     void      set_search_status(const wxString &msg, bool error = false);
 
@@ -45,13 +44,9 @@ private:
     Button       *m_generate_btn { nullptr };
     wxStaticText *m_status       { nullptr };
 
-    // Search & Import tab
+    // Search tab
     wxTextCtrl   *m_query         { nullptr };
-    Button       *m_search_btn    { nullptr };
-    Button       *m_import_btn     { nullptr };
-    wxListBox    *m_results_list  { nullptr };
     wxStaticText *m_search_status { nullptr };
-    std::vector<std::string> m_result_urls;   // parallel to m_results_list rows
 };
 
 }} // namespace Slic3r::GUI
