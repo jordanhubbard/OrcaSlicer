@@ -106,8 +106,20 @@ public:
         nlohmann::json body = (params.is_object()) ? params : nlohmann::json::object();
         body["model"] = default_model();
         nlohmann::json msgs = nlohmann::json::array();
-        for (const auto &m : messages)
-            msgs.push_back({{"role", m.role}, {"content", m.content}});
+        for (const auto &m : messages) {
+            if (m.images.empty()) {
+                msgs.push_back({{"role", m.role}, {"content", m.content}});
+            } else {
+                // OpenAI multimodal: content is an array of text/image_url parts.
+                nlohmann::json parts = nlohmann::json::array();
+                if (! m.content.empty())
+                    parts.push_back({{"type", "text"}, {"text", m.content}});
+                for (const auto &img : m.images)
+                    parts.push_back({{"type", "image_url"},
+                                     {"image_url", {{"url", "data:image/jpeg;base64," + img}}}});
+                msgs.push_back({{"role", m.role}, {"content", std::move(parts)}});
+            }
+        }
         body["messages"] = std::move(msgs);
 
         auto http = Http::post(m_base + "/v1/chat/completions");
@@ -186,7 +198,20 @@ public:
         std::string system;
         for (const auto &m : messages) {
             if (m.role == "system") { system += (system.empty() ? "" : "\n") + m.content; continue; }
-            msgs.push_back({{"role", m.role}, {"content", m.content}});
+            if (m.images.empty()) {
+                msgs.push_back({{"role", m.role}, {"content", m.content}});
+            } else {
+                // Anthropic multimodal: content is an array of text/image blocks.
+                nlohmann::json parts = nlohmann::json::array();
+                if (! m.content.empty())
+                    parts.push_back({{"type", "text"}, {"text", m.content}});
+                for (const auto &img : m.images)
+                    parts.push_back({{"type", "image"},
+                                     {"source", {{"type", "base64"},
+                                                 {"media_type", "image/jpeg"},
+                                                 {"data", img}}}});
+                msgs.push_back({{"role", m.role}, {"content", std::move(parts)}});
+            }
         }
         body["messages"] = std::move(msgs);
         if (! system.empty())

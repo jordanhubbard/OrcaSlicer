@@ -22,11 +22,15 @@ struct AIConfig
     std::string base_url;   ///< Optional override for the API endpoint.
 };
 
-/// A single chat message (role + text content).
+/// A single chat message (role + text content, plus optional images).
 struct AIMessage
 {
-    std::string role;    ///< "system", "user", or "assistant"
+    std::string role;       ///< "system", "user", or "assistant"
     std::string content;
+
+    /// Optional base64-encoded JPEG frames (no data-URI prefix) for vision
+    /// models. When non-empty, providers send multimodal content parts.
+    std::vector<std::string> images;
 };
 
 /// Describes a model returned by get_models().
