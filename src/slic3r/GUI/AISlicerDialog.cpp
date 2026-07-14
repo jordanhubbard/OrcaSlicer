@@ -17,6 +17,8 @@
 #include <wx/textctrl.h>
 #include <wx/utils.h>
 
+#include <wx/weakref.h>
+
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
@@ -24,6 +26,8 @@
 #include "Plater.hpp"
 #include "GLCanvas3D.hpp"
 #include "Widgets/Button.hpp"
+#include "Jobs/Worker.hpp"
+#include "Jobs/Job.hpp"
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -108,81 +112,103 @@ wxWindow *AISlicerDialog::build_generate_tab(wxNotebook *nb)
     return panel;
 }
 
+// Result shared between the worker thread (fills it) and the finish handler
+// (consumes it on the main thread).
+namespace { struct AIGenResult { Model model; std::string error; bool ok = false; }; }
+
 void AISlicerDialog::on_generate()
 {
     const wxString promptw = m_prompt->GetValue();
     if (promptw.IsEmpty()) { set_status(_L("Enter a description first."), true); return; }
 
     auto *ac = wxGetApp().app_config;
-    std::unique_ptr<AIProvider> provider(
-        ac ? AIProvider::create(AIProvider::config_from_app_config(*ac)) : nullptr);
-    if (! provider) {
+    AIConfig cfg = ac ? AIProvider::config_from_app_config(*ac) : AIConfig();
+    if (! std::unique_ptr<AIProvider>(AIProvider::create(cfg))) {
         set_status(_L("No AI provider is configured. Open AI Settings and register a provider and API key first."), true);
         return;
     }
 
-    // Assemble the request: shape-spec contract + machine context as system, the
-    // user's description (and a camera frame, if any) as the user turn.
+    // Everything that touches the GUI must happen HERE, on the main thread:
+    // gather machine context, build the request, read the bed dimensions.
     AIPrinterContext ctx = AIPrinterContext::gather();
-
-    std::vector<AIMessage> messages;
-    AIMessage sys;
-    sys.role    = "system";
-    sys.content = ai_shape_spec_instructions() +
-                  "\n\nPrinter context (respect these constraints; never exceed the build volume):\n" +
-                  ctx.to_prompt();
-    messages.push_back(std::move(sys));
-
-    AIMessage user;
-    user.role    = "user";
-    user.content = into_u8(promptw);
-    if (ctx.has_image())
-        user.images.push_back(ctx.to_image());
-    messages.push_back(std::move(user));
-
-    set_status(_L("Generating..."));
-    AIResponse resp;
+    auto messages = std::make_shared<std::vector<AIMessage>>();
     {
-        wxBusyCursor wait; // the LLM round-trip briefly blocks the UI
-        resp = provider->chat(messages);
+        AIMessage sys;
+        sys.role    = "system";
+        sys.content = ai_shape_spec_instructions() +
+                      "\n\nPrinter context (respect these constraints; never exceed the build volume):\n" +
+                      ctx.to_prompt();
+        messages->push_back(std::move(sys));
+        AIMessage user;
+        user.role    = "user";
+        user.content = into_u8(promptw);
+        if (ctx.has_image())
+            user.images.push_back(ctx.to_image());
+        messages->push_back(std::move(user));
     }
-    if (! resp.ok) { set_status(_L("AI request failed: ") + from_u8(resp.error), true); return; }
-
-    Model result;
-    std::string error;
     const std::string name = into_u8(promptw).substr(0, 40);
-    if (! ai_build_model_from_response(resp.content, name, result, error)) {
-        set_status(_L("Could not build a model from the AI response: ") + from_u8(error), true);
-        return;
-    }
-    if (result.objects.empty()) { set_status(_L("The AI did not return a usable shape."), true); return; }
 
-    // Printable-fit check (informational — we still add it so the user can rescale).
     double bx = 220, by = 220, bz = 250;
     if (auto *bundle = wxGetApp().preset_bundle)
         compute_bed_dims(bundle->full_config(), bx, by, bz);
-    std::string warn;
-    const bool fits = ai_model_fits_bed(result, bx, by, bz, warn);
 
-    // Inject on the main thread (we are on it): mutate the Plater model, then
-    // register + select via the object list.
-    Plater *plater = wxGetApp().plater();
-    plater->take_snapshot(into_u8(_L("Add AI generated object")));
-    Model &model = plater->model();
-    std::vector<size_t> idxs;
-    for (const ModelObject *src : result.objects) {
-        ModelObject *dst = model.add_object(*src);
-        dst->ensure_on_bed();
-        idxs.push_back(model.objects.size() - 1);
-    }
-    wxGetApp().obj_list()->paste_objects_into_list(idxs);
-    if (auto *canvas = plater->get_view3D_canvas3D())
-        canvas->reload_scene(true);
+    auto result = std::make_shared<AIGenResult>();
+    wxWeakRef<AISlicerDialog> self(this);   // survives the dialog closing mid-generation
 
-    if (fits)
-        set_status(_L("Added the generated object to the plate."));
-    else
-        set_status(from_u8(warn) + " " + _L("Added anyway — scale it to fit."), true);
+    set_status(_L("Generating in the background..."));
+    if (m_generate_btn) m_generate_btn->Disable();
+
+    Worker &worker = wxGetApp().plater()->get_ui_job_worker();
+    replace_job(worker,
+        // ---- worker thread: the blocking LLM round-trip + geometry build ----
+        [cfg, messages, name, result](Job::Ctl &ctl) {
+            ctl.update_status(15, "Contacting the AI...");
+            std::unique_ptr<AIProvider> provider(AIProvider::create(cfg));
+            if (! provider) { result->error = "No AI provider configured."; return; }
+            AIResponse resp = provider->chat(*messages);
+            if (ctl.was_canceled()) return;
+            if (! resp.ok) { result->error = "AI request failed: " + resp.error; return; }
+            ctl.update_status(70, "Building geometry...");
+            if (! ai_build_model_from_response(resp.content, name, result->model, result->error)) return;
+            if (result->model.objects.empty()) { result->error = "The AI did not return a usable shape."; return; }
+            result->ok = true;
+            ctl.update_status(100, "");
+        },
+        // ---- main thread: drop the object on the plate + report ----
+        [self, result, bx, by, bz](bool canceled, std::exception_ptr &eptr) {
+            wxString msg; bool err = false;
+            if (canceled) { msg = _L("Generation canceled."); err = true; }
+            else if (eptr) {
+                try { std::rethrow_exception(eptr); }
+                catch (std::exception &e) { msg = from_u8(std::string("Error: ") + e.what()); }
+                catch (...)               { msg = _L("Unknown error during generation."); }
+                err = true;
+            }
+            else if (! result->ok) { msg = from_u8(result->error); err = true; }
+            else {
+                std::string warn;
+                const bool fits = ai_model_fits_bed(result->model, bx, by, bz, warn);
+                Plater *plater = wxGetApp().plater();
+                plater->take_snapshot(into_u8(_L("Add AI generated object")));
+                Model &model = plater->model();
+                std::vector<size_t> idxs;
+                for (const ModelObject *src : result->model.objects) {
+                    ModelObject *dst = model.add_object(*src);
+                    dst->ensure_on_bed();
+                    idxs.push_back(model.objects.size() - 1);
+                }
+                wxGetApp().obj_list()->paste_objects_into_list(idxs);
+                if (auto *canvas = plater->get_view3D_canvas3D())
+                    canvas->reload_scene(true);
+                msg = fits ? _L("Added the generated object to the plate.")
+                           : from_u8(warn) + " " + _L("Added anyway — scale it to fit.");
+                err = ! fits;
+            }
+            if (self) {
+                self->set_status(msg, err);
+                if (self->m_generate_btn) self->m_generate_btn->Enable();
+            }
+        });
 }
 
 void AISlicerDialog::set_status(const wxString &msg, bool error)

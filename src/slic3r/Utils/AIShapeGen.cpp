@@ -92,8 +92,12 @@ bool build_mesh(const json &node, TriangleMesh &out, std::string &error, int dep
     if (depth > MAX_DEPTH)     { error = "shape spec nested too deeply";     return false; }
     if (! node.is_object())    { error = "each shape node must be an object"; return false; }
 
-    const std::string type = node.value("type", std::string());
-    if (type.empty()) { error = "shape node is missing \"type\""; return false; }
+    // Accept common key variations models emit for the node kind.
+    std::string type = node.value("type", std::string());
+    if (type.empty()) type = node.value("operation", std::string());
+    if (type.empty()) type = node.value("op", std::string());
+    if (type.empty()) type = node.value("shape", std::string());
+    if (type.empty()) { error = "a shape node is missing its \"type\""; return false; }
 
     if (type == "box" || type == "cube") {
         Vec3d s = getvec3(node, "size", Vec3d(20, 20, 20));
@@ -145,6 +149,25 @@ bool build_mesh(const json &node, TriangleMesh &out, std::string &error, int dep
     return true;
 }
 
+// Remove <think>...</think> reasoning blocks. Reasoning models (Nemotron,
+// DeepSeek-R1, QwQ, ...) emit their chain-of-thought in these tags and put the
+// real answer AFTER </think>; the block itself often contains draft JSON + prose
+// that would otherwise corrupt our extraction.
+std::string strip_think_blocks(const std::string &in)
+{
+    std::string s = in;
+    for (const char *open : {"<think>", "<thinking>", "<reasoning>"}) {
+        const std::string close = std::string("</") + (open + 1);   // "</think>" etc.
+        std::size_t pos;
+        while ((pos = s.find(open)) != std::string::npos) {
+            std::size_t end = s.find(close, pos);
+            if (end == std::string::npos) { s.erase(pos); break; }   // unterminated: drop the tail
+            s.erase(pos, (end + close.size()) - pos);
+        }
+    }
+    return s;
+}
+
 // Strip a leading/trailing ``` or ```json/```stl code fence, if present.
 std::string strip_code_fence(const std::string &in)
 {
@@ -179,22 +202,28 @@ Model *finalize_object(Model &model, TriangleMesh &&mesh, const std::string &nam
 std::string ai_shape_spec_instructions()
 {
     return
-        "Return ONLY a JSON object describing the 3D shape (no prose). Units are millimeters.\n"
-        "A node has a \"type\" and is centered at the origin before its transform.\n"
-        "Primitives:\n"
-        "  {\"type\":\"box\",\"size\":[x,y,z]}\n"
-        "  {\"type\":\"cylinder\",\"radius\":r,\"height\":h}   (or \"diameter\":d)\n"
-        "  {\"type\":\"cone\",\"radius\":r,\"height\":h}\n"
-        "  {\"type\":\"sphere\",\"radius\":r}                  (or \"diameter\":d)\n"
-        "CSG (combine shapes):\n"
-        "  {\"type\":\"union|difference|intersection\",\"children\":[ ...nodes... ]}\n"
-        "  (difference subtracts every child after the first from the first)\n"
-        "Optional per-node transform (applied after the shape is built):\n"
-        "  \"translate\":[x,y,z], \"rotate\":[deg,deg,deg], \"scale\":[sx,sy,sz]\n"
-        "Keep the result within the printer's build volume. Example — a washer:\n"
+        "Output ONLY one JSON object for the 3D shape and nothing else. Units are millimeters.\n"
+        "RULES:\n"
+        "- EVERY node uses the key \"type\" (never \"operation\" or \"shape\").\n"
+        "- Every shape is ALREADY centered at the origin. Add \"translate\" ONLY to move a shape "
+        "off-center; a hole through the center needs NO translate.\n"
+        "- Primitives:\n"
+        "    {\"type\":\"box\",\"size\":[x,y,z]}\n"
+        "    {\"type\":\"cylinder\",\"radius\":r,\"height\":h}   (or \"diameter\":d)\n"
+        "    {\"type\":\"cone\",\"radius\":r,\"height\":h}\n"
+        "    {\"type\":\"sphere\",\"radius\":r}                  (or \"diameter\":d)\n"
+        "- Combine with CSG:\n"
+        "    {\"type\":\"union|difference|intersection\",\"children\":[ ...nodes... ]}\n"
+        "    (\"difference\" subtracts every later child from the first)\n"
+        "- Optional per-node transform: \"translate\":[x,y,z], \"rotate\":[deg,deg,deg], \"scale\":[sx,sy,sz]\n"
+        "- Cylinders/cones stand along Z. To bore a hole along Z through a centered box, a same-height "
+        "centered cylinder is correct with NO translate.\n"
+        "- Only geometric primitives + booleans are possible; you cannot model organic or freeform "
+        "objects (animals, faces, characters).\n"
+        "Example — a 30mm cube with a 10mm hole through its center:\n"
         "  {\"type\":\"difference\",\"children\":["
-        "{\"type\":\"cylinder\",\"radius\":10,\"height\":4},"
-        "{\"type\":\"cylinder\",\"radius\":5,\"height\":4}]}";
+        "{\"type\":\"box\",\"size\":[30,30,30]},"
+        "{\"type\":\"cylinder\",\"radius\":5,\"height\":30}]}";
 }
 
 bool ai_build_model_from_spec(const json &spec, const std::string &name, Model &out_model, std::string &error)
@@ -247,7 +276,7 @@ bool ai_build_model_from_response(const std::string &response, const std::string
     BOOST_LOG_TRIVIAL(info) << "AIShapeGen: raw AI response (" << response.size()
                             << " bytes): " << snippet_of(response, 4000);
 
-    const std::string s = strip_code_fence(response);
+    const std::string s = strip_code_fence(strip_think_blocks(response));
     if (s.empty()) { error = "The AI returned an empty response."; return false; }
 
     // Locate a JSON object anywhere in the reply — models often wrap the spec in
