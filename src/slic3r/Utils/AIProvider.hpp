@@ -47,6 +47,13 @@ struct AIResponse
     std::string content;          ///< The assistant reply (on success).
     std::string error;            ///< Human-readable error description (on failure).
     nlohmann::json raw;           ///< Full JSON payload from the provider.
+
+    /// When the model answered with a tool/function call (see chat params
+    /// "tools" + "tool_choice"), this holds the raw JSON arguments string of the
+    /// first tool call. Empty if the model replied with prose instead — which,
+    /// for a forced tool call, means the model is unsuitable for the task.
+    std::string tool_call_arguments;
+    std::string tool_call_name;
 };
 
 /**

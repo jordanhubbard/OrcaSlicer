@@ -43,6 +43,14 @@ bool ai_build_model_from_response(const std::string &response,
                                   Model             &out_model,
                                   std::string       &error);
 
+// Build a Model from the JSON arguments of a forced create_model tool call.
+// Accepts either {"shape": <node>} or a bare <node>. This is the reliable path:
+// a model that returns a tool call is producing structured geometry, not prose.
+bool ai_build_model_from_tool_call(const std::string &args_json,
+                                   const std::string &name,
+                                   Model             &out_model,
+                                   std::string       &error);
+
 // Bed-fit check: false (with a warning) if the model's XY/Z extent exceeds the
 // given build volume in mm. Used to keep generated geometry printable.
 bool ai_model_fits_bed(const Model &model,

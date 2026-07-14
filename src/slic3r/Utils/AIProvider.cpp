@@ -142,9 +142,19 @@ public:
         if (! r.ok || ! status_ok(r.status)) { res.error = http_error_message(r); return res; }
         try {
             nlohmann::json j = nlohmann::json::parse(r.body);
-            res.raw     = j;
-            res.content = j.at("choices").at(0).at("message").at("content").get<std::string>();
-            res.ok      = true;
+            res.raw = j;
+            const nlohmann::json &msg = j.at("choices").at(0).at("message");
+            // Preferred path: a tool/function call (forced via the "tools" +
+            // "tool_choice" chat params). Arguments are a JSON string.
+            if (msg.contains("tool_calls") && msg["tool_calls"].is_array() && ! msg["tool_calls"].empty()) {
+                const nlohmann::json &fn = msg["tool_calls"][0].at("function");
+                res.tool_call_name      = fn.value("name", std::string());
+                res.tool_call_arguments = fn.value("arguments", std::string());
+            }
+            // Plain assistant text (may be null when a tool was called).
+            if (msg.contains("content") && msg["content"].is_string())
+                res.content = msg["content"].get<std::string>();
+            res.ok = true;
         } catch (const std::exception &e) {
             res.error = std::string("Could not parse response: ") + e.what();
         }
@@ -239,11 +249,17 @@ public:
         try {
             nlohmann::json j = nlohmann::json::parse(r.body);
             res.raw = j;
-            // content is an array of blocks; concatenate the text blocks.
+            // content is an array of blocks: text blocks + optional tool_use.
             std::string text;
-            for (const auto &block : j.value("content", nlohmann::json::array()))
-                if (block.value("type", std::string()) == "text")
+            for (const auto &block : j.value("content", nlohmann::json::array())) {
+                const std::string btype = block.value("type", std::string());
+                if (btype == "text")
                     text += block.value("text", std::string());
+                else if (btype == "tool_use" && res.tool_call_arguments.empty()) {
+                    res.tool_call_name      = block.value("name", std::string());
+                    res.tool_call_arguments = block.contains("input") ? block["input"].dump() : std::string();
+                }
+            }
             res.content = std::move(text);
             res.ok      = true;
         } catch (const std::exception &e) {

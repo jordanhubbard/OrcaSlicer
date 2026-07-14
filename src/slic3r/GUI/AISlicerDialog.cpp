@@ -135,9 +135,9 @@ void AISlicerDialog::on_generate()
     {
         AIMessage sys;
         sys.role    = "system";
-        sys.content = ai_shape_spec_instructions() +
-                      "\n\nPrinter context (respect these constraints; never exceed the build volume):\n" +
-                      ctx.to_prompt();
+        sys.content = "You design small, printable 3D shapes and return them ONLY by calling the "
+                      "create_model tool (never reply in prose). Respect this printer's constraints; "
+                      "never exceed the build volume.\n\nPrinter context:\n" + ctx.to_prompt();
         messages->push_back(std::move(sys));
         AIMessage user;
         user.role    = "user";
@@ -147,6 +147,32 @@ void AISlicerDialog::on_generate()
         messages->push_back(std::move(user));
     }
     const std::string name = into_u8(promptw).substr(0, 40);
+
+    // Force a create_model tool call so the model MUST return a structured shape
+    // spec rather than prose. A model that replies with text instead is
+    // unsuitable — which is exactly how we tell capable models from talky ones.
+    auto params = std::make_shared<nlohmann::json>();
+    {
+        nlohmann::json tool = {
+            {"type", "function"},
+            {"function", {
+                {"name", "create_model"},
+                {"description", std::string("Create a printable 3D shape as a parametric tree. Never explain in prose. ")
+                               + ai_shape_spec_instructions()},
+                {"parameters", {
+                    {"type", "object"},
+                    {"properties", {
+                        {"shape", {{"type", "object"}, {"description", "The root shape node (type + params + children)."}}},
+                        {"design_summary", {{"type", "string"}}}
+                    }},
+                    {"required", nlohmann::json::array({"shape"})}
+                }}
+            }}
+        };
+        (*params)["tools"]       = nlohmann::json::array({tool});
+        (*params)["tool_choice"] = {{"type", "function"}, {"function", {{"name", "create_model"}}}};
+        (*params)["temperature"] = 0.2;
+    }
 
     double bx = 220, by = 220, bz = 250;
     if (auto *bundle = wxGetApp().preset_bundle)
@@ -161,15 +187,26 @@ void AISlicerDialog::on_generate()
     Worker &worker = wxGetApp().plater()->get_ui_job_worker();
     replace_job(worker,
         // ---- worker thread: the blocking LLM round-trip + geometry build ----
-        [cfg, messages, name, result](Job::Ctl &ctl) {
+        [cfg, messages, params, name, result](Job::Ctl &ctl) {
             ctl.update_status(15, "Contacting the AI...");
             std::unique_ptr<AIProvider> provider(AIProvider::create(cfg));
             if (! provider) { result->error = "No AI provider configured."; return; }
-            AIResponse resp = provider->chat(*messages);
+            AIResponse resp = provider->chat(*messages, *params);
             if (ctl.was_canceled()) return;
             if (! resp.ok) { result->error = "AI request failed: " + resp.error; return; }
             ctl.update_status(70, "Building geometry...");
-            if (! ai_build_model_from_response(resp.content, name, result->model, result->error)) return;
+            bool built;
+            if (! resp.tool_call_arguments.empty())
+                built = ai_build_model_from_tool_call(resp.tool_call_arguments, name, result->model, result->error);
+            else if (! resp.content.empty())
+                built = ai_build_model_from_response(resp.content, name, result->model, result->error);
+            else {
+                result->error = "This model returned no shape (it didn't call the create_model tool), "
+                                "so it isn't suitable for 3D generation. Try a recommended model such as "
+                                "a llama-3.x-instruct or a code model.";
+                built = false;
+            }
+            if (! built) return;
             if (result->model.objects.empty()) { result->error = "The AI did not return a usable shape."; return; }
             result->ok = true;
             ctl.update_status(100, "");

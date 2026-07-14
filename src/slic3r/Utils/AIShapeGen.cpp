@@ -312,6 +312,26 @@ bool ai_build_model_from_response(const std::string &response, const std::string
     return false;
 }
 
+bool ai_build_model_from_tool_call(const std::string &args_json, const std::string &name, Model &out_model, std::string &error)
+{
+    BOOST_LOG_TRIVIAL(info) << "AIShapeGen: create_model tool args (" << args_json.size()
+                            << " bytes): " << snippet_of(args_json, 2000);
+    try {
+        json args = json::parse(args_json);
+        json spec;
+        if (args.is_object() && args.contains("shape") && args["shape"].is_object())
+            spec = args["shape"];
+        else if (args.is_object() && (args.contains("type") || args.contains("operation") ||
+                                      args.contains("op") || args.contains("children")))
+            spec = args;                       // the model put the node at the top level
+        else { error = "The create_model call didn't contain a shape."; return false; }
+        return ai_build_model_from_spec(spec, name, out_model, error);
+    } catch (const std::exception &e) {
+        error = std::string("Could not parse the create_model arguments: ") + e.what();
+        return false;
+    }
+}
+
 bool ai_model_fits_bed(const Model &model, double bed_x, double bed_y, double bed_z, std::string &warning)
 {
     BoundingBoxf3 bb;
