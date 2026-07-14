@@ -1,12 +1,16 @@
 #ifndef slic3r_AISlicerDialog_hpp_
 #define slic3r_AISlicerDialog_hpp_
 
+#include <string>
+#include <vector>
+
 #include "GUI_Utils.hpp"
 
 class Button;
 class wxTextCtrl;
 class wxStaticText;
 class wxNotebook;
+class wxListBox;
 
 namespace Slic3r { namespace GUI {
 
@@ -29,12 +33,25 @@ protected:
 
 private:
     wxWindow *build_generate_tab(wxNotebook *nb);
+    wxWindow *build_search_tab(wxNotebook *nb);
     void      on_generate();
+    void      on_search();
+    void      on_import();
     void      set_status(const wxString &msg, bool error = false);
+    void      set_search_status(const wxString &msg, bool error = false);
 
+    // Generate tab
     wxTextCtrl   *m_prompt       { nullptr };
     Button       *m_generate_btn { nullptr };
     wxStaticText *m_status       { nullptr };
+
+    // Search & Import tab
+    wxTextCtrl   *m_query         { nullptr };
+    Button       *m_search_btn    { nullptr };
+    Button       *m_import_btn     { nullptr };
+    wxListBox    *m_results_list  { nullptr };
+    wxStaticText *m_search_status { nullptr };
+    std::vector<std::string> m_result_urls;   // parallel to m_results_list rows
 };
 
 }} // namespace Slic3r::GUI
