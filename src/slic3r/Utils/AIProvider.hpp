@@ -11,6 +11,8 @@
 
 namespace Slic3r {
 
+class AppConfig;   // libslic3r; used by AIProvider::config_from_app_config()
+
 /// Configuration passed to AIProvider::create().
 struct AIConfig
 {
@@ -120,6 +122,13 @@ public:
      * @return  Heap-allocated concrete provider, or nullptr when disabled.
      */
     static AIProvider *create(const AIConfig &config);
+
+    /**
+     * Build an AIConfig from the "ai_slicer" section of AppConfig:
+     *   ai_slicer/provider, ai_slicer/gateway_url (-> base_url),
+     *   ai_slicer/api_key, ai_slicer/model.
+     */
+    static AIConfig config_from_app_config(const AppConfig &app_config);
 };
 
 } // namespace Slic3r
