@@ -11,6 +11,8 @@
 
 namespace Slic3r {
 
+class AppConfig;
+
 /// Configuration passed to AIProvider::create().
 struct AIConfig
 {
@@ -19,6 +21,15 @@ struct AIConfig
     std::string model;
     std::string base_url;   ///< Optional override for the API endpoint.
 };
+
+/**
+ * Build an AIConfig from the persisted AppConfig "ai_slicer" section.
+ *
+ * Maps the typed AppConfig accessors onto AIConfig fields
+ * (gateway_url -> base_url). When the section is unset/empty the returned
+ * config has empty fields, so AIProvider::create() treats it as disabled.
+ */
+AIConfig build_ai_config(const AppConfig &app_config);
 
 /// A single chat message (role + text content).
 struct AIMessage

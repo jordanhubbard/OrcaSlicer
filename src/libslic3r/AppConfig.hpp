@@ -30,6 +30,13 @@ using namespace nlohmann;
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
 #define SETTING_CLOUD_PROVIDERS "cloud_providers"
+
+// AI Slicer LLM provider configuration keys (stored under the "ai_slicer" section).
+#define SECTION_AI_SLICER "ai_slicer"
+#define SETTING_AI_SLICER_PROVIDER "provider"
+#define SETTING_AI_SLICER_API_KEY "api_key"
+#define SETTING_AI_SLICER_MODEL "model"
+#define SETTING_AI_SLICER_GATEWAY_URL "gateway_url"
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
@@ -392,6 +399,21 @@ public:
     bool has_cloud_provider(const std::string& provider) const;
     void add_cloud_provider(const std::string& provider);
     void remove_cloud_provider(const std::string& provider);
+
+    // AI Slicer LLM provider settings (section "ai_slicer").
+    // Accessors return empty strings when the section/key is unset so that
+    // default behavior is preserved when AI Slicer is not configured.
+    std::string get_ai_provider() const;
+    void        set_ai_provider(const std::string& provider);
+    // NOTE: the API key is stored in CLEARTEXT in the application config file
+    // (slic3r.ini), consistent with other credential-style values here. Do not
+    // assume it is encrypted or otherwise protected at rest.
+    std::string get_ai_api_key() const;
+    void        set_ai_api_key(const std::string& api_key);
+    std::string get_ai_model() const;
+    void        set_ai_model(const std::string& model);
+    std::string get_ai_gateway_url() const;
+    void        set_ai_gateway_url(const std::string& gateway_url);
 
 private:
 	template<typename T>

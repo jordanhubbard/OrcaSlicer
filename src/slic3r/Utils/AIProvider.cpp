@@ -1,5 +1,7 @@
 #include "AIProvider.hpp"
 
+#include "libslic3r/AppConfig.hpp"
+
 #include <boost/log/trivial.hpp>
 
 namespace Slic3r {
@@ -37,6 +39,21 @@ AIProvider *AIProvider::create(const AIConfig &config)
         << "' is not yet implemented; returning nullptr.";
 
     return nullptr;
+}
+
+
+// ---------------------------------------------------------------------------
+// AppConfig -> AIConfig helper
+// ---------------------------------------------------------------------------
+
+AIConfig build_ai_config(const AppConfig &app_config)
+{
+    AIConfig config;
+    config.provider = app_config.get_ai_provider();
+    config.api_key  = app_config.get_ai_api_key();
+    config.model    = app_config.get_ai_model();
+    config.base_url = app_config.get_ai_gateway_url();
+    return config;
 }
 
 } // namespace Slic3r

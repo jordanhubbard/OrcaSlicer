@@ -1727,6 +1727,53 @@ void AppConfig::remove_cloud_provider(const std::string& provider)
     set_cloud_providers(providers);
 }
 
+// ---------------------------------------------------------------------------
+// AI Slicer LLM provider settings (section "ai_slicer")
+// ---------------------------------------------------------------------------
+
+std::string AppConfig::get_ai_provider() const
+{
+    return get(SECTION_AI_SLICER, SETTING_AI_SLICER_PROVIDER);
+}
+
+void AppConfig::set_ai_provider(const std::string& provider)
+{
+    set(SECTION_AI_SLICER, SETTING_AI_SLICER_PROVIDER, provider);
+}
+
+// NOTE: the API key is persisted in CLEARTEXT to slic3r.ini. It is not
+// encrypted at rest; callers should treat it as sensitive accordingly.
+std::string AppConfig::get_ai_api_key() const
+{
+    return get(SECTION_AI_SLICER, SETTING_AI_SLICER_API_KEY);
+}
+
+void AppConfig::set_ai_api_key(const std::string& api_key)
+{
+    // Stored in cleartext (see header comment); no obfuscation is applied.
+    set(SECTION_AI_SLICER, SETTING_AI_SLICER_API_KEY, api_key);
+}
+
+std::string AppConfig::get_ai_model() const
+{
+    return get(SECTION_AI_SLICER, SETTING_AI_SLICER_MODEL);
+}
+
+void AppConfig::set_ai_model(const std::string& model)
+{
+    set(SECTION_AI_SLICER, SETTING_AI_SLICER_MODEL, model);
+}
+
+std::string AppConfig::get_ai_gateway_url() const
+{
+    return get(SECTION_AI_SLICER, SETTING_AI_SLICER_GATEWAY_URL);
+}
+
+void AppConfig::set_ai_gateway_url(const std::string& gateway_url)
+{
+    set(SECTION_AI_SLICER, SETTING_AI_SLICER_GATEWAY_URL, gateway_url);
+}
+
 void AppConfig::reset_selections()
 {
     auto it = m_storage.find("presets");
