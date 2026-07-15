@@ -1762,7 +1762,7 @@ void PreferencesDialog::create_items()
         // Provider
         {
             auto sizer = create_item_label(_L("AI provider"), _L("LLM provider used by the AI shape generator (AI menu)."), "");
-            auto combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
+            auto combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(320), -1), 0, nullptr, wxCB_READONLY);
             combo->Append(_L("Disabled"));
             combo->Append(_L("OpenAI"));
             combo->Append(_L("Anthropic"));
@@ -1778,7 +1778,7 @@ void PreferencesDialog::create_items()
         // Text fields (API key / gateway / model), each bound to an ai_slicer key.
         auto ai_text_row = [this, g_sizer](const wxString &label, const wxString &tip, const std::string &key, long extra_style) {
             auto sizer = create_item_label(label, tip, "");
-            auto input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER | extra_style);
+            auto input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(320), -1), wxTE_PROCESS_ENTER | extra_style);
             input->GetTextCtrl()->SetValue(from_u8(app_config->get("ai_slicer", key)));
             auto save = [this, input, key]() {
                 app_config->set("ai_slicer", key, into_u8(input->GetTextCtrl()->GetValue()));
@@ -1817,9 +1817,13 @@ void PreferencesDialog::create_items()
                 status->GetParent()->Layout();
             });
             sizer->Add(test_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
-            sizer->Add(qual_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
-            sizer->Add(status,   0, wxALIGN_CENTER_VERTICAL);
+            sizer->Add(qual_btn, 0, wxALIGN_CENTER_VERTICAL);
             g_sizer->Add(sizer);
+            // Result text on its own full-width row: a long "Failed: ..." message
+            // must not stretch the button row and clip the General page.
+            auto status_row = create_item_label(wxEmptyString, wxEmptyString, "");
+            status_row->Add(status, 0, wxALIGN_CENTER_VERTICAL);
+            g_sizer->Add(status_row);
         }
     }
 
