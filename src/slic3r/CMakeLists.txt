@@ -26,6 +26,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/AISettingsDialog.hpp
     GUI/AISlicerDialog.cpp
     GUI/AISlicerDialog.hpp
+    GUI/AIGenerate.hpp
     GUI/AmsMappingPopup.cpp
     GUI/AmsMappingPopup.hpp
     GUI/AMSMaterialsSetting.cpp

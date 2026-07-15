@@ -3539,14 +3539,12 @@ void MainFrame::init_menubar_as_editor()
 
     m_menubar->Append(calib_menu,wxString::Format("&%s", _L("Calibration")));
 
-    // AI menu — generate shapes from text and configure the AI provider.
+    // AI menu — generate shapes from text. (AI provider setup lives in
+    // Preferences > General > AI.)
     auto* ai_menu = new wxMenu();
     append_menu_item(ai_menu, wxID_ANY, _L("Generate 3D Shape..."),
         _L("Generate a 3D shape from a text description with AI"),
         [this](wxCommandEvent&) { AISlicerDialog dlg(this); dlg.ShowModal(); });
-    append_menu_item(ai_menu, wxID_ANY, _L("AI Settings..."),
-        _L("Configure the AI provider, API key, and model"),
-        [this](wxCommandEvent&) { AISettingsDialog dlg(this); dlg.ShowModal(); });
     m_menubar->Append(ai_menu, wxString::Format("&%s", _L("AI")));
 
     if (helpMenu)

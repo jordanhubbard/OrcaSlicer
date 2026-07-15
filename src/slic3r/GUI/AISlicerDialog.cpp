@@ -1,4 +1,5 @@
 #include "AISlicerDialog.hpp"
+#include "AIGenerate.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -116,15 +117,15 @@ wxWindow *AISlicerDialog::build_generate_tab(wxNotebook *nb)
 // (consumes it on the main thread).
 namespace { struct AIGenResult { Model model; std::string error; std::string warn; bool ok = false; }; }
 
-void AISlicerDialog::on_generate()
+// Shared generation entry point (see AIGenerate.hpp). Runs the full pipeline on
+// a background Job and calls on_done(ok, message) on the main thread.
+void ai_generate_shape_to_plate(const std::string &prompt,
+                                std::function<void(bool, const std::string &)> on_done)
 {
-    const wxString promptw = m_prompt->GetValue();
-    if (promptw.IsEmpty()) { set_status(_L("Enter a description first."), true); return; }
-
     auto *ac = wxGetApp().app_config;
     AIConfig cfg = ac ? AIProvider::config_from_app_config(*ac) : AIConfig();
     if (! std::unique_ptr<AIProvider>(AIProvider::create(cfg))) {
-        set_status(_L("No AI provider is configured. Open AI Settings and register a provider and API key first."), true);
+        on_done(false, "No AI provider is configured. Open Preferences > General > AI and register a provider and API key first.");
         return;
     }
 
@@ -141,12 +142,12 @@ void AISlicerDialog::on_generate()
         messages->push_back(std::move(sys));
         AIMessage user;
         user.role    = "user";
-        user.content = into_u8(promptw);
+        user.content = prompt;
         if (ctx.has_image())
             user.images.push_back(ctx.to_image());
         messages->push_back(std::move(user));
     }
-    const std::string name = into_u8(promptw).substr(0, 40);
+    const std::string name = prompt.substr(0, 40);
 
     // Force a create_model tool call so the model MUST return a structured shape
     // spec rather than prose. A model that replies with text instead is
@@ -179,10 +180,6 @@ void AISlicerDialog::on_generate()
         compute_bed_dims(bundle->full_config(), bx, by, bz);
 
     auto result = std::make_shared<AIGenResult>();
-    wxWeakRef<AISlicerDialog> self(this);   // survives the dialog closing mid-generation
-
-    set_status(_L("Generating in the background..."));
-    if (m_generate_btn) m_generate_btn->Disable();
 
     Worker &worker = wxGetApp().plater()->get_ui_job_worker();
     replace_job(worker,
@@ -254,7 +251,7 @@ void AISlicerDialog::on_generate()
             }
         },
         // ---- main thread: drop the object on the plate + report ----
-        [self, result](bool canceled, std::exception_ptr &eptr) {
+        [result, on_done](bool canceled, std::exception_ptr &eptr) {
             wxString msg; bool err = false;
             if (canceled) { msg = _L("Generation canceled."); err = true; }
             else if (eptr) {
@@ -281,11 +278,25 @@ void AISlicerDialog::on_generate()
                     msg = _L("Added the generated object to the plate.");
                 else { msg = from_u8(result->warn) + " " + _L("Added anyway — scale it to fit."); err = true; }
             }
-            if (self) {
-                self->set_status(msg, err);
-                if (self->m_generate_btn) self->m_generate_btn->Enable();
-            }
+            on_done(! err, into_u8(msg));
         });
+}
+
+void AISlicerDialog::on_generate()
+{
+    const wxString promptw = m_prompt->GetValue();
+    if (promptw.IsEmpty()) { set_status(_L("Enter a description first."), true); return; }
+
+    set_status(_L("Generating in the background..."));
+    if (m_generate_btn) m_generate_btn->Disable();
+
+    wxWeakRef<AISlicerDialog> self(this);   // survives the dialog closing mid-generation
+    ai_generate_shape_to_plate(into_u8(promptw), [self](bool ok, const std::string &message) {
+        if (self) {
+            self->set_status(from_u8(message), ! ok);
+            if (self->m_generate_btn) self->m_generate_btn->Enable();
+        }
+    });
 }
 
 void AISlicerDialog::set_status(const wxString &msg, bool error)
