@@ -90,7 +90,7 @@ wxWindow *AISlicerDialog::build_generate_tab(wxNotebook *nb)
     auto *panel = new wxPanel(nb, wxID_ANY);
     auto *s = new wxBoxSizer(wxVERTICAL);
 
-    s->Add(new wxStaticText(panel, wxID_ANY, _L("Describe the object you want to create:")),
+    s->Add(new wxStaticText(panel, wxID_ANY, _L("Describe a mechanical part to generate:")),
            0, wxALL, FromDIP(10));
 
     m_prompt = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition,
@@ -98,8 +98,9 @@ wxWindow *AISlicerDialog::build_generate_tab(wxNotebook *nb)
     s->Add(m_prompt, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
 
     s->Add(new wxStaticText(panel, wxID_ANY,
-               _L("Your printer's settings and live sensor data (bed, nozzle, material, temperatures, "
-                  "and a camera frame when available) are sent with each request, so the shape fits the machine.")),
+               _L("Builds parametric parts from primitives + boolean cuts (brackets, knobs, boxes, holders, "
+                  "adapters) sized to your printer. Not for organic/sculptural shapes (animals, figurines) — "
+                  "for those, use the Find models tab. Your printer's settings and sensors are sent with each request.")),
            0, wxALL, FromDIP(10));
 
     m_generate_btn = new Button(panel, _L("Generate"));

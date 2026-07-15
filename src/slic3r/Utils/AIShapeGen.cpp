@@ -236,6 +236,26 @@ bool ai_build_model_from_spec(const json &spec, const std::string &name, Model &
         error = std::string("shape build failed: ") + e.what();
         return false;
     }
+
+    // Make the result watertight/manifold: CSG booleans can leave non-manifold
+    // edges (coincident faces, flush cuts) that make the mesh un-printable. First
+    // a cheap cleanup, then a CGAL self-union — which resolves self-intersections
+    // and is a no-op on already-clean meshes. Best-effort: keep the cleaned mesh
+    // if self-union fails.
+    its_merge_vertices(mesh.its);
+    its_remove_degenerate_faces(mesh.its);
+    mesh = TriangleMesh(mesh.its);
+    try {
+        TriangleMesh repaired = mesh;
+        MeshBoolean::self_union(repaired);
+        if (repaired.facets_count() > 0)
+            mesh = std::move(repaired);
+    } catch (const std::exception &e) {
+        BOOST_LOG_TRIVIAL(info) << "AIShapeGen: manifold repair (self-union) failed: " << e.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(info) << "AIShapeGen: manifold repair (self-union) crashed";
+    }
+
     return finalize_object(out_model, std::move(mesh), name.empty() ? "AI shape" : name, error) != nullptr;
 }
 

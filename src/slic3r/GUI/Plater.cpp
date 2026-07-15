@@ -2350,7 +2350,7 @@ Sidebar::Sidebar(Plater *parent)
     {
         auto *ai_prompt = new wxTextCtrl(p->scrolled, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                          wxSize(FromDIP(150), -1), wxTE_PROCESS_ENTER);
-        ai_prompt->SetHint(_L("Describe a shape for AI..."));
+        ai_prompt->SetHint(_L("e.g. a bracket with four M3 holes"));
         auto *ai_btn = new Button(p->scrolled, _L("Generate"));
         ai_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         auto *ai_status = new wxStaticText(p->scrolled, wxID_ANY, wxEmptyString);
@@ -2374,7 +2374,7 @@ Sidebar::Sidebar(Plater *parent)
         ai_row->Add(ai_prompt, 1, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
         ai_row->Add(ai_btn,    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
         auto *ai_box = new wxBoxSizer(wxVERTICAL);
-        ai_box->Add(new wxStaticText(p->scrolled, wxID_ANY, _L("AI shape generator")), 0, wxLEFT | wxTOP, FromDIP(6));
+        ai_box->Add(new wxStaticText(p->scrolled, wxID_ANY, _L("AI part generator (mechanical shapes)")), 0, wxLEFT | wxTOP, FromDIP(6));
         ai_box->Add(ai_row,    0, wxEXPAND | wxTOP, FromDIP(2));
         ai_box->Add(ai_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(4));
         scrolled_sizer->Add(ai_box, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
