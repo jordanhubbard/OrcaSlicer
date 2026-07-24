@@ -98,6 +98,63 @@ bool AppConfig::get_hide_login_side_panel()
     return get_bool("hide_login_side_panel");
 }
 
+// --- AI Slicer ("ai_slicer" section) ---------------------------------------
+// These typed accessors wrap the plain get()/set() helpers so that callers use
+// one canonical spelling for each key and never affect other sections. All keys
+// live under the "ai_slicer" section and default to an empty string, which keeps
+// the AI feature disabled when nothing has been configured.
+namespace {
+    static const char *AI_SLICER_SECTION  = "ai_slicer";
+    static const char *AI_KEY_PROVIDER    = "provider";
+    static const char *AI_KEY_API_KEY     = "api_key";
+    static const char *AI_KEY_MODEL       = "model";
+    // Historical key name; also serves as the AIConfig base_url override.
+    static const char *AI_KEY_GATEWAY_URL = "gateway_url";
+} // namespace
+
+std::string AppConfig::get_ai_provider() const
+{
+    return get(AI_SLICER_SECTION, AI_KEY_PROVIDER);
+}
+
+void AppConfig::set_ai_provider(const std::string &provider)
+{
+    set(AI_SLICER_SECTION, AI_KEY_PROVIDER, provider);
+}
+
+std::string AppConfig::get_ai_api_key() const
+{
+    // Returned in cleartext: the key is stored unobfuscated in slic3r.ini.
+    return get(AI_SLICER_SECTION, AI_KEY_API_KEY);
+}
+
+void AppConfig::set_ai_api_key(const std::string &api_key)
+{
+    // Stored in cleartext, consistent with the rest of AppConfig; callers that
+    // need secrecy should rely on OS-level file permissions for slic3r.ini.
+    set(AI_SLICER_SECTION, AI_KEY_API_KEY, api_key);
+}
+
+std::string AppConfig::get_ai_model() const
+{
+    return get(AI_SLICER_SECTION, AI_KEY_MODEL);
+}
+
+void AppConfig::set_ai_model(const std::string &model)
+{
+    set(AI_SLICER_SECTION, AI_KEY_MODEL, model);
+}
+
+std::string AppConfig::get_ai_base_url() const
+{
+    return get(AI_SLICER_SECTION, AI_KEY_GATEWAY_URL);
+}
+
+void AppConfig::set_ai_base_url(const std::string &base_url)
+{
+    set(AI_SLICER_SECTION, AI_KEY_GATEWAY_URL, base_url);
+}
+
 void AppConfig::reset()
 {
     m_storage.clear();

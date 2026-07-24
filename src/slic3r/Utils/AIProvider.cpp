@@ -23,11 +23,14 @@ AIResponse AIProvider::complete(const std::string    &prompt,
 
 AIConfig AIProvider::config_from_app_config(const AppConfig &app_config)
 {
+    // Build the provider config purely from the typed "ai_slicer" accessors on
+    // AppConfig; when the section is unset every getter returns "", which yields
+    // a disabled AIConfig (create() maps that to nullptr).
     AIConfig cfg;
-    cfg.provider = app_config.get("ai_slicer", "provider");
-    cfg.base_url = app_config.get("ai_slicer", "gateway_url");
-    cfg.api_key  = app_config.get("ai_slicer", "api_key");
-    cfg.model    = app_config.get("ai_slicer", "model");
+    cfg.provider = app_config.get_ai_provider();
+    cfg.base_url = app_config.get_ai_base_url();
+    cfg.api_key  = app_config.get_ai_api_key();
+    cfg.model    = app_config.get_ai_model();
     return cfg;
 }
 

@@ -93,6 +93,24 @@ public:
 	bool get_stealth_mode();
 	bool get_hide_login_side_panel();
 
+	// --- AI Slicer ("ai_slicer" section) --------------------------------------
+	// Typed accessors for the optional AI-assistant configuration. The keys live
+	// in the dedicated "ai_slicer" AppConfig section so that leaving them unset
+	// keeps the feature disabled and never affects existing behaviour.
+	std::string get_ai_provider() const;
+	void        set_ai_provider(const std::string &provider);
+	// The API key is stored in cleartext in slic3r.ini, mirroring how the rest of
+	// AppConfig persists credentials. It is intentionally not obfuscated so that
+	// callers (and users editing the ini by hand) can read it back verbatim.
+	std::string get_ai_api_key() const;
+	void        set_ai_api_key(const std::string &api_key);
+	std::string get_ai_model() const;
+	void        set_ai_model(const std::string &model);
+	// Optional endpoint override ("gateway"/base URL). Empty means "use the
+	// provider's default endpoint".
+	std::string get_ai_base_url() const;
+	void        set_ai_base_url(const std::string &base_url);
+
 	// Clear and reset to defaults.
 	void 			   	reset();
 	// Override missing or keys with their defaults.
