@@ -287,4 +287,5 @@ src/slic3r/GUI/DownloaderFileGet.cpp
 src/slic3r/GUI/FileArchiveDialog.cpp
 src/slic3r/GUI/PrinterCloudAuthDialog.cpp
 src/slic3r/GUI/PrinterWebViewHandler.cpp
+src/slic3r/GUI/AISlicerDialog.cpp
 src/libslic3r/PresetBundle.cpp
