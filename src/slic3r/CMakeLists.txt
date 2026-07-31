@@ -582,6 +582,8 @@ set(SLIC3R_GUI_SOURCES
     pchheader.hpp
     Utils/AIProvider.cpp
     Utils/AIProvider.hpp
+    Utils/AIModelSearch.cpp
+    Utils/AIModelSearch.hpp
     Utils/AIPrinterContext.cpp
     Utils/AIPrinterContext.hpp
     Utils/AIShapeGen.cpp

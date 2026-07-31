@@ -40,6 +40,7 @@
 #include "slic3r/Utils/AIPrinterContext.hpp"
 #include "slic3r/Utils/AIShapeGen.hpp"
 #include "slic3r/Utils/Http.hpp"
+#include "slic3r/Utils/AIModelSearch.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -335,13 +336,30 @@ wxWindow *AISlicerDialog::build_search_tab(wxNotebook *nb)
     auto *s = new wxBoxSizer(wxVERTICAL);
 
     s->Add(new wxStaticText(panel, wxID_ANY,
-               _L("Find a model on a printing site, then download it there and load it with File > Import:")),
+               _L("Describe a model to find, then import it straight onto the plate:")),
            0, wxALL, FromDIP(10));
 
-    m_query = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(420), -1), wxTE_PROCESS_ENTER);
-    s->Add(m_query, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
+    // Query + Search button on one row.
+    m_query = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(340), -1), wxTE_PROCESS_ENTER);
+    m_search_btn = new Button(panel, _L("Search"));
+    m_search_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { on_search(); });
+    m_query->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) { on_search(); });
+    auto *query_row = new wxBoxSizer(wxHORIZONTAL);
+    query_row->Add(m_query, 1, wxEXPAND | wxRIGHT, FromDIP(8));
+    query_row->Add(m_search_btn, 0);
+    s->Add(query_row, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
 
-    // One button per repository — each opens that site's search results in the browser.
+    // Candidate results.
+    m_results = new wxListBox(panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(420), FromDIP(140)));
+    m_results->Bind(wxEVT_LISTBOX_DCLICK, [this](wxCommandEvent &) { on_import(); });
+    s->Add(m_results, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
+
+    // Import selected result.
+    m_import_btn = new Button(panel, _L("Import selected"));
+    m_import_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { on_import(); });
+    s->Add(m_import_btn, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
+
+    // Fallback: open each site's own search page in the browser.
     struct Site { const wchar_t *name; const char *prefix; const char *suffix; };
     static const Site kSites[] = {
         { L"Printables",  "https://www.printables.com/search/models?q=",      ""             },
@@ -349,6 +367,9 @@ wxWindow *AISlicerDialog::build_search_tab(wxNotebook *nb)
         { L"Thingiverse", "https://www.thingiverse.com/search?q=",            "&type=things" },
         { L"Thangs",      "https://thangs.com/search/",                       "?scope=all"   },
     };
+    s->Add(new wxStaticText(panel, wxID_ANY,
+               _L("Or browse a site directly (download there, then File > Import):")),
+           0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
     auto *btn_row = new wxBoxSizer(wxHORIZONTAL);
     for (const auto &site : kSites) {
         auto *b = new Button(panel, wxString(site.name));
@@ -356,23 +377,125 @@ wxWindow *AISlicerDialog::build_search_tab(wxNotebook *nb)
         b->Bind(wxEVT_BUTTON, [this, prefix, suffix](wxCommandEvent &) { open_model_search(prefix, suffix); });
         btn_row->Add(b, 0, wxRIGHT, FromDIP(8));
     }
-    s->Add(btn_row, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
-
-    // Enter opens the first site (Printables).
-    m_query->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) {
-        open_model_search("https://www.printables.com/search/models?q=", "");
-    });
-
-    s->Add(new wxStaticText(panel, wxID_ANY,
-               _L("These are community model sites; most let you download after a free sign-in. "
-                  "Save the .stl/.3mf, then load it with File > Import.")),
-           0, wxALL, FromDIP(10));
+    s->Add(btn_row, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
 
     m_search_status = new wxStaticText(panel, wxID_ANY, "");
-    s->Add(m_search_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+    s->Add(m_search_status, 0, wxEXPAND | wxALL, FromDIP(10));
 
     panel->SetSizer(s);
     return panel;
+}
+
+// --- AI-backed model search -------------------------------------------------
+//
+// The AIProvider turns the query into candidate model files (title + url +
+// source). We only surface direct download links to the public repositories
+// the user already uses, and respect each site's terms of service.
+
+namespace { struct AISearchResult { AIModelSearchResult res; }; }
+
+void AISlicerDialog::on_search()
+{
+    const std::string query = into_u8(m_query->GetValue());
+    if (query.empty()) { set_search_status(_L("Type what you're looking for first."), true); return; }
+
+    set_search_status(_L("Searching in the background..."));
+    if (m_search_btn) m_search_btn->Disable();
+    m_results->Clear();
+    m_candidates.clear();
+
+    auto result = std::make_shared<AISearchResult>();
+    wxWeakRef<AISlicerDialog> self(this);
+
+    Worker &worker = wxGetApp().plater()->get_ui_job_worker();
+    replace_job(worker,
+        [query, result](Job::Ctl &ctl) {
+            ctl.update_status(20, "Asking the AI for matching models...");
+            result->res = ai_search_models(query);
+            ctl.update_status(100, "");
+        },
+        [self, result](bool canceled, std::exception_ptr &eptr) {
+            if (! self) return;
+            if (self->m_search_btn) self->m_search_btn->Enable();
+            if (canceled) { self->set_search_status(_L("Search canceled."), true); return; }
+            if (eptr) {
+                try { std::rethrow_exception(eptr); }
+                catch (std::exception &e) { self->set_search_status(from_u8(std::string("Error: ") + e.what()), true); }
+                catch (...)               { self->set_search_status(_L("Unknown error during search."), true); }
+                return;
+            }
+            const AIModelSearchResult &r = result->res;
+            if (! r.ok) { self->set_search_status(from_u8(r.error), true); return; }
+
+            self->m_candidates = r.candidates;
+            self->m_results->Clear();
+            for (const AIModelCandidate &c : r.candidates) {
+                wxString label = from_u8(c.title);
+                if (! c.source.empty())
+                    label += "  (" + from_u8(c.source) + ")";
+                self->m_results->Append(label);
+            }
+            if (! self->m_candidates.empty())
+                self->m_results->SetSelection(0);
+            self->set_search_status(wxString::Format(_L("Found %d model(s). Select one and click Import."),
+                                                     (int) r.candidates.size()));
+        });
+}
+
+namespace { struct AIImportResult { AIModelDownloadResult dl; std::vector<size_t> loaded; std::string load_error; }; }
+
+void AISlicerDialog::on_import()
+{
+    const int sel = m_results ? m_results->GetSelection() : wxNOT_FOUND;
+    if (sel == wxNOT_FOUND || sel < 0 || (size_t) sel >= m_candidates.size()) {
+        set_search_status(_L("Select a model from the list first."), true);
+        return;
+    }
+    const AIModelCandidate candidate = m_candidates[(size_t) sel];
+
+    set_search_status(wxString::Format(_L("Downloading \"%s\"..."), from_u8(candidate.title)));
+    if (m_import_btn) m_import_btn->Disable();
+
+    auto result = std::make_shared<AIImportResult>();
+    wxWeakRef<AISlicerDialog> self(this);
+
+    // Download on a background Job (progress + cancel are surfaced through the
+    // shared Worker progress UI), then load the file onto the plate on the main
+    // thread — mirroring the download/load split of Plater::import_model_id.
+    Worker &worker = wxGetApp().plater()->get_ui_job_worker();
+    replace_job(worker,
+        [candidate, result](Job::Ctl &ctl) {
+            auto on_progress = [&ctl](int percent, const std::string &msg) {
+                ctl.update_status(percent < 0 ? 0 : std::min(percent, 99), msg);
+            };
+            auto is_canceled = [&ctl]() { return ctl.was_canceled(); };
+            result->dl = ai_download_model(candidate, on_progress, is_canceled);
+            ctl.update_status(100, "");
+        },
+        [self, result](bool job_canceled, std::exception_ptr &eptr) {
+            if (! self) return;
+            if (self->m_import_btn) self->m_import_btn->Enable();
+
+            if (job_canceled) { self->set_search_status(_L("Download canceled."), true); return; }
+            if (eptr) {
+                try { std::rethrow_exception(eptr); }
+                catch (std::exception &e) { self->set_search_status(from_u8(std::string("Error: ") + e.what()), true); }
+                catch (...)               { self->set_search_status(_L("Unknown error during import."), true); }
+                return;
+            }
+            const AIModelDownloadResult &dl = result->dl;
+            if (! dl.ok) { self->set_search_status(from_u8(dl.error), true); return; }
+
+            // Load the downloaded file onto the plate (mirrors import_model_id).
+            Plater *plater = wxGetApp().plater();
+            std::vector<boost::filesystem::path> files { boost::filesystem::path(dl.path) };
+            std::vector<size_t> loaded = plater->load_files(files, LoadStrategy::LoadModel);
+            if (loaded.empty())
+                self->set_search_status(wxString::Format(_L("Downloaded to \"%s\", but the file could not be loaded."),
+                                                         from_u8(dl.path)), true);
+            else
+                self->set_search_status(_L("Imported the model onto the plate."));
+        });
 }
 
 void AISlicerDialog::open_model_search(const std::string &url_prefix, const std::string &url_suffix)
