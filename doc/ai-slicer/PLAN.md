@@ -163,16 +163,30 @@ degrades silently when unavailable. It never throws.
 
 **1. Slicer settings — always present, works fully offline.**
 `slicer_context_from_config(full_config)` reads the merged
-`DynamicPrintConfig` and emits three groups:
+`DynamicPrintConfig` and emits three groups. The field names the model sees are
+**not** the config option names — they are deliberately shortened, so the table
+below gives both:
 
-- `machine`: `nozzle_diameter`, `nozzle_type`, `printable_height`,
-  `printable_area`, `gcode_flavor`, `machine_max_speed_{x,y,z,e}`,
-  `machine_max_acceleration_extruding`, `machine_max_acceleration_travel`
-- `filament`: `filament_type`, `filament_diameter`, `filament_flow_ratio`,
-  `nozzle_temperature`, `nozzle_temperature_initial_layer`, `hot_plate_temp`,
-  `hot_plate_temp_initial_layer`
-- `process`: `layer_height`, `initial_layer_print_height`,
-  `sparse_infill_density`
+| group | field in the JSON the model receives | config option read |
+|---|---|---|
+| `machine` | `nozzle_diameter` | `nozzle_diameter` |
+| | `nozzle_type` | `nozzle_type` |
+| | `printable_height` | `printable_height` |
+| | `printable_area` | `printable_area` (bed polygon — *not* `bed_shape`) |
+| | `gcode_flavor` | `gcode_flavor` |
+| | `max_speed_x` … `max_speed_e` | `machine_max_speed_{x,y,z,e}` |
+| | `max_accel` | `machine_max_acceleration_extruding` |
+| | `max_accel_travel` | `machine_max_acceleration_travel` |
+| `filament` | `type` | `filament_type` |
+| | `diameter` | `filament_diameter` |
+| | `flow_ratio` | `filament_flow_ratio` |
+| | `nozzle_temperature` | `nozzle_temperature` |
+| | `nozzle_temp_first_layer` | `nozzle_temperature_initial_layer` |
+| | `bed_temperature` | `hot_plate_temp` |
+| | `bed_temp_first_layer` | `hot_plate_temp_initial_layer` |
+| `process` | `layer_height` | `layer_height` |
+| | `first_layer_height` | `initial_layer_print_height` (*not* `first_layer_height`) |
+| | `sparse_infill_density` | `sparse_infill_density` |
 
 Each value goes through `DynamicPrintConfig::opt_serialize()`, which renders any
 option type — scalar, enum, per-extruder vector, point list — to a stable
@@ -339,11 +353,14 @@ project-file, or preset format is touched.
 
 `AIProvider::config_from_app_config()` is the only reader; the Preferences page
 is the only writer. The section is rendered with the page's standard row
-builders — the section-aware overloads of `create_item_combobox()`,
-`create_item_input()` (with a `password` flag for the key), `create_item_button()`,
-and `create_item_warning()` for the always-visible cleartext-key notice — so it
-inherits the page's persistence behaviour: each field writes and
-`app_config->save()`s on `wxEVT_TEXT_ENTER` and `wxEVT_KILL_FOCUS`.
+builders — the *section-aware* overloads of `create_item_combobox()` and
+`create_item_input()` (the latter with a `password` flag for the key), plus the
+existing `create_item_button()` for the two check buttons and the new
+`create_item_warning()` for the always-visible cleartext-key notice. Persistence
+therefore comes from the builders, not from the AI code: the text fields write
+and `app_config->save()` on `wxEVT_TEXT_ENTER` and `wxEVT_KILL_FOCUS`, and the
+provider combo does the same on `wxEVT_COMBOBOX`. There is no Save button and no
+AI-specific persistence path.
 
 For backward compatibility, opening Preferences rewrites a stored
 `provider = openai_compatible` to `compatible`, so configs written by earlier
@@ -407,10 +424,22 @@ branch. Nothing in the context, the shape core, or any UI is provider-aware.
        return new MyProvider(config);
    ```
 
-4. **Expose it in Preferences** (`src/slic3r/GUI/Preferences.cpp`): append the
-   display name to the *AI provider* combo and add the matching case to
-   `ai_provider_index()` / `ai_provider_key()`. These two functions are the
-   whole index↔key mapping.
+4. **Expose it in Preferences** (`src/slic3r/GUI/Preferences.cpp`, in the
+   `//// GENERAL > AI Slicer` block of `create_general_page()`): append one
+   entry to *each* of the two parallel vectors
+
+   ```cpp
+   std::vector<wxString>    AIProviderLabels = {…, _L("Example")};
+   std::vector<std::string> AIProviderValues = {…, "example"};
+   ```
+
+   `AIProviderLabels` holds the translated display names, `AIProviderValues` the
+   keys handed to `AIProvider::create()`. They are matched **positionally**, so
+   an entry must be appended to both at the same index. The section-aware
+   `create_item_combobox()` overload takes the value vector as its
+   `config_name_index` argument and does the index↔key mapping itself, writing
+   `ai_slicer/provider` on selection — there is no separate mapping function to
+   update.
 
 That is the complete set of edits. The dialogs, the sidebar, the context
 assembly, and the shape core need no changes, because they only ever see
@@ -443,6 +472,14 @@ prompt — "a 30mm cube with a 10mm hole through the center" — with a forced
 `ai_build_model_from_tool_call()` and reports the round-trip time. It answers
 the question that matters: *can this particular model produce buildable
 geometry?*
+
+Note that `ai_qualify_model()` is a `static` function inside `Preferences.cpp`,
+not a shared entry point next to `ai_generate_shape_to_plate()`. It builds its
+own forced-tool-call request synchronously on the UI thread (behind a
+`wxBusyCursor`), which is acceptable for a button the user explicitly presses
+but does mean the OpenAI-shaped `tools` / `tool_choice` payload is constructed in
+**two** places — the reason limitation §10.2 has to be fixed in the provider
+rather than at one call site.
 
 ---
 
@@ -502,6 +539,9 @@ overstate what ships.
 8. **`AISlicerDialog.cpp` strings reach `_L()` but not the catalogue.** The file
    is now listed in `localization/i18n/list.txt`; before that its strings were
    wrapped for translation but never extracted into the POT.
+   `AISettingsDialog.cpp` still is not listed, so its 28 `_L()` strings are not
+   extracted either — harmless only because that file is dead code (§10.3) and
+   is to be deleted rather than added to the list.
 
 ---
 

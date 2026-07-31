@@ -331,7 +331,10 @@ Style, i18n, and docs
 - [ ] Matches surrounding style; C++17; `#pragma once` or include guards
       consistent with neighbours.
 - [ ] Every user-facing string is wrapped in `_L` / `_u8L`, and every file
-      containing them is listed in `localization/i18n/list.txt`.
+      containing them is listed in `localization/i18n/list.txt`. (Today
+      `AISlicerDialog.cpp` is listed; `AISettingsDialog.cpp` is not, and its 28
+      `_L()` strings are therefore not extracted — resolved by must-fix #3
+      deleting that file, not by listing it.)
 - [ ] **No dead code** (see must-fix #3).
 - [ ] `doc/ai-slicer/` accurately describes the merged behaviour, including the
       cleartext-key warning.
