@@ -277,6 +277,23 @@ wxBoxSizer *PreferencesDialog::create_item_label(wxString label, wxString toolti
     return sizer;
 }
 
+// Full width warning line, for notes that must stay visible next to the setting
+// they apply to (as opposed to a tooltip the user may never open).
+wxBoxSizer *PreferencesDialog::create_item_warning(wxString text)
+{
+    wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
+    sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+    auto warning_ctrl = new wxStaticText(m_parent, wxID_ANY, text);
+    warning_ctrl->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#FF6F00"))); // ORCA warning color
+    warning_ctrl->SetFont(::Label::Body_12);
+    warning_ctrl->Wrap(FromDIP(560));
+
+    sizer->Add(warning_ctrl, 1, wxTOP | wxBOTTOM | wxRIGHT, FromDIP(3));
+
+    return sizer;
+}
+
 std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, unsigned int current_index, const wxString wiki_url)
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
@@ -339,6 +356,28 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     //// save config
     combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
+        e.Skip();
+    });
+
+    return sizer;
+}
+
+wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string section, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, const wxString wiki_url)
+{
+    assert(vlist.size() == config_name_index.size());
+    unsigned int current_index = 0;
+
+    auto current_setting = app_config->get(section, param);
+    auto iterator        = std::find(config_name_index.begin(), config_name_index.end(), current_setting);
+    if (iterator != config_name_index.end())
+        current_index = static_cast<unsigned int>(iterator - config_name_index.begin());
+
+    auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index, wiki_url);
+
+    //// save config
+    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, section, param, config_name_index](wxCommandEvent& e) {
+        app_config->set(section, param, config_name_index[e.GetSelection()]);
+        app_config->save();
         e.Skip();
     });
 
@@ -690,6 +729,44 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
         onchange(value);
         e.Skip();
     });
+
+    return m_sizer;
+}
+
+wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2, wxString tooltip, std::string section, std::string param, bool password, std::function<void(wxString)> onchange, const wxString wiki_url)
+{
+    auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
+
+    wxBoxSizer *m_sizer = create_item_label(title, tip, wiki_url);
+
+    // Free text: unlike the top level variant above no digits-only validator is
+    // installed, so URLs, keys and model ids are stored verbatim.
+    auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER | (password ? wxTE_PASSWORD : 0));
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(from_u8(app_config->get(section, param)));
+    input->SetToolTip(tip);
+
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    if (!title2.IsEmpty()) {
+        auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
+        second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        second_title->SetFont(::Label::Body_14);
+        second_title->SetToolTip(tip);
+        m_sizer->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+    }
+
+    auto save = [this, input, section, param, onchange]() {
+        auto value = input->GetTextCtrl()->GetValue();
+        app_config->set(section, param, into_u8(value));
+        app_config->save();
+        if (onchange)
+            onchange(value);
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER , [save](wxCommandEvent &e) { save(); e.Skip(); });
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS , [save](wxFocusEvent   &e) { save(); e.Skip(); });
 
     return m_sizer;
 }
@@ -1559,17 +1636,17 @@ void PreferencesDialog::Split(const std::string &src, const std::string &separat
     dest.push_back(substring);
 }
 
-// --- AI provider helpers (used by the Preferences "AI" section) --------------
-static int ai_provider_index(const std::string &key)
+// --- AI provider helpers (used by the Preferences "AI Slicer" section) -------
+
+// AppConfig section holding every AI Slicer setting.
+static const char *AI_SLICER_SECTION = "ai_slicer";
+
+// Paint an inline result next to the button that produced it.
+static void ai_set_status(wxStaticText *status, const wxString &text, bool ok)
 {
-    if (key == "anthropic")                                return 2;
-    if (key == "compatible" || key == "openai_compatible") return 3;
-    if (key == "openai")                                   return 1;
-    return 0; // disabled
-}
-static std::string ai_provider_key(int idx)
-{
-    switch (idx) { case 1: return "openai"; case 2: return "anthropic"; case 3: return "compatible"; default: return ""; }
+    status->SetForegroundColour(ok ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0xC0, 0x30, 0x30));
+    status->SetLabel(text);
+    status->GetParent()->Layout();
 }
 
 // Run the create_model qualification test: does the model return a buildable
@@ -1756,72 +1833,52 @@ void PreferencesDialog::create_items()
     auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
     g_sizer->Add(item_shared_profiles);
 
-    //// GENERAL > AI
-    g_sizer->Add(create_item_title(_L("AI")), 1, wxEXPAND);
-    {
-        // Provider
-        {
-            auto sizer = create_item_label(_L("AI provider"), _L("LLM provider used by the AI shape generator (AI menu)."), "");
-            auto combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
-            combo->Append(_L("Disabled"));
-            combo->Append(_L("OpenAI"));
-            combo->Append(_L("Anthropic"));
-            combo->Append(_L("OpenAI-compatible (custom gateway)"));
-            combo->SetSelection(ai_provider_index(app_config->get("ai_slicer", "provider")));
-            combo->Bind(wxEVT_COMBOBOX, [this, combo](wxCommandEvent &) {
-                app_config->set("ai_slicer", "provider", ai_provider_key(combo->GetSelection()));
-                app_config->save();
-            });
-            sizer->Add(combo, 0, wxALIGN_CENTER);
-            g_sizer->Add(sizer);
+    //// GENERAL > AI Slicer
+    g_sizer->Add(create_item_title(_L("AI Slicer")), 1, wxEXPAND);
+
+    // Older builds wrote "openai_compatible"; keep those configs on the combobox.
+    if (app_config->get(AI_SLICER_SECTION, "provider") == "openai_compatible")
+        app_config->set(AI_SLICER_SECTION, "provider", std::string("compatible")); // std::string: the bool overload would win over a literal
+
+    std::vector<wxString>    AIProviderLabels = {_L("Disabled"), _L("OpenAI"), _L("Anthropic"), _L("OpenAI-compatible (custom gateway)")};
+    std::vector<std::string> AIProviderValues = {"", "openai", "anthropic", "compatible"};
+    auto item_ai_provider      = create_item_combobox(_L("AI provider"), _L("LLM provider used by the AI shape generator (AI menu)."), AI_SLICER_SECTION, "provider", AIProviderLabels, AIProviderValues);
+    g_sizer->Add(item_ai_provider);
+
+    auto item_ai_gateway       = create_item_input(_L("Gateway URL"), "", _L("Base URL for an OpenAI-compatible gateway, e.g. https://host/v1/"), AI_SLICER_SECTION, "gateway_url");
+    g_sizer->Add(item_ai_gateway);
+
+    auto item_ai_api_key       = create_item_input(_L("API key"), "", _L("Provider API key."), AI_SLICER_SECTION, "api_key", true);
+    g_sizer->Add(item_ai_api_key);
+
+    g_sizer->Add(create_item_warning(_L("The API key is stored as clear text in the OrcaSlicer configuration file on this computer. Anyone who can read your user profile — or a backup of it — can read the key. Prefer a key that is limited to this use and revoke it when you no longer need it.")), 1, wxEXPAND);
+
+    auto item_ai_model         = create_item_input(_L("Model"), "", _L("Model id. Use a mid/large instruct or code model; avoid embedding/reranker/tiny models."), AI_SLICER_SECTION, "model");
+    g_sizer->Add(item_ai_model);
+
+    // Each button reports into its own status label, appended to the row the builder returned.
+    auto ai_test_status        = new wxStaticText(m_parent, wxID_ANY, wxEmptyString);
+    auto item_ai_test          = create_item_button(_L("AI connection"), _L("Test connection"), "", _L("Send a test request to the configured provider."), [this, ai_test_status]() {
+        std::unique_ptr<AIProvider> provider(AIProvider::create(AIProvider::config_from_app_config(*app_config)));
+        if (! provider) {
+            ai_set_status(ai_test_status, _L("Configure a provider and API key first."), false);
+            return;
         }
-        // Text fields (API key / gateway / model), each bound to an ai_slicer key.
-        auto ai_text_row = [this, g_sizer](const wxString &label, const wxString &tip, const std::string &key, long extra_style) {
-            auto sizer = create_item_label(label, tip, "");
-            auto input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER | extra_style);
-            input->GetTextCtrl()->SetValue(from_u8(app_config->get("ai_slicer", key)));
-            auto save = [this, input, key]() {
-                app_config->set("ai_slicer", key, into_u8(input->GetTextCtrl()->GetValue()));
-                app_config->save();
-            };
-            input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save](wxFocusEvent &e) { save(); e.Skip(); });
-            input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save](wxCommandEvent &e) { save(); e.Skip(); });
-            sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
-            g_sizer->Add(sizer);
-        };
-        ai_text_row(_L("API key"), _L("Provider API key (stored locally in the config file)."), "api_key", wxTE_PASSWORD);
-        ai_text_row(_L("Gateway URL"), _L("Base URL for an OpenAI-compatible gateway, e.g. https://host/v1/"), "gateway_url", 0);
-        ai_text_row(_L("Model"), _L("Model id. Use a mid/large instruct or code model; avoid embedding/reranker/tiny models."), "model", 0);
-        // Test connection + Qualify-for-3D
-        {
-            auto sizer  = create_item_label(_L("AI connection"), _L("Verify the settings and whether the model can generate 3D shapes."), "");
-            auto status = new wxStaticText(m_parent, wxID_ANY, wxEmptyString);
-            auto test_btn = new Button(m_parent, _L("Test connection"));
-            test_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
-            test_btn->Bind(wxEVT_BUTTON, [this, status](wxCommandEvent &) {
-                std::unique_ptr<AIProvider> p(AIProvider::create(AIProvider::config_from_app_config(*app_config)));
-                if (! p) { status->SetForegroundColour(wxColour(0xC0, 0x30, 0x30)); status->SetLabel(_L("Configure a provider and API key first.")); status->GetParent()->Layout(); return; }
-                std::string err; bool ok;
-                { wxBusyCursor wait; ok = p->test_connection(err); }
-                status->SetForegroundColour(ok ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0xC0, 0x30, 0x30));
-                status->SetLabel(ok ? _L("Connection OK.") : _L("Failed: ") + from_u8(err));
-                status->GetParent()->Layout();
-            });
-            auto qual_btn = new Button(m_parent, _L("Qualify for 3D"));
-            qual_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
-            qual_btn->Bind(wxEVT_BUTTON, [this, status](wxCommandEvent &) {
-                wxString msg; bool ok;
-                { wxBusyCursor wait; ok = ai_qualify_model(AIProvider::config_from_app_config(*app_config), msg); }
-                status->SetForegroundColour(ok ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0xC0, 0x30, 0x30));
-                status->SetLabel(msg);
-                status->GetParent()->Layout();
-            });
-            sizer->Add(test_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
-            sizer->Add(qual_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
-            sizer->Add(status,   0, wxALIGN_CENTER_VERTICAL);
-            g_sizer->Add(sizer);
-        }
-    }
+        std::string err; bool ok;
+        { wxBusyCursor wait; ok = provider->test_connection(err); }
+        ai_set_status(ai_test_status, ok ? _L("Connection OK.") : _L("Failed: ") + from_u8(err), ok);
+    });
+    item_ai_test->Add(ai_test_status, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    g_sizer->Add(item_ai_test);
+
+    auto ai_qualify_status     = new wxStaticText(m_parent, wxID_ANY, wxEmptyString);
+    auto item_ai_qualify       = create_item_button(_L("AI 3D generation"), _L("Qualify for 3D"), "", _L("Ask the configured model for a test shape and check whether it is buildable."), [this, ai_qualify_status]() {
+        wxString msg; bool ok;
+        { wxBusyCursor wait; ok = ai_qualify_model(AIProvider::config_from_app_config(*app_config), msg); }
+        ai_set_status(ai_qualify_status, msg, ok);
+    });
+    item_ai_qualify->Add(ai_qualify_status, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    g_sizer->Add(item_ai_qualify);
 
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
