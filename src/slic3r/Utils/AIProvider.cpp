@@ -6,6 +6,7 @@
 #include <boost/log/trivial.hpp>
 
 #include "libslic3r/AppConfig.hpp"
+#include "AISlicerConfig.hpp"
 
 namespace Slic3r {
 
@@ -24,10 +25,10 @@ AIResponse AIProvider::complete(const std::string    &prompt,
 AIConfig AIProvider::config_from_app_config(const AppConfig &app_config)
 {
     AIConfig cfg;
-    cfg.provider = app_config.get("ai_slicer", "provider");
-    cfg.base_url = app_config.get("ai_slicer", "gateway_url");
-    cfg.api_key  = app_config.get("ai_slicer", "api_key");
-    cfg.model    = app_config.get("ai_slicer", "model");
+    cfg.provider = AISlicerConfig::get_provider(app_config);
+    cfg.base_url = AISlicerConfig::get_gateway_url(app_config);
+    cfg.api_key  = AISlicerConfig::get_api_key(app_config);
+    cfg.model    = AISlicerConfig::get_model(app_config);
     return cfg;
 }
 

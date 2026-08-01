@@ -586,6 +586,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/AIPrinterContext.hpp
     Utils/AIShapeGen.cpp
     Utils/AIShapeGen.hpp
+    Utils/AISlicerConfig.cpp
+    Utils/AISlicerConfig.hpp
     Utils/ASCIIFolding.cpp
     Utils/ASCIIFolding.hpp
     Utils/AstroBox.cpp

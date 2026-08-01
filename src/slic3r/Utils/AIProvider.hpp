@@ -138,6 +138,9 @@ public:
      * Build an AIConfig from the "ai_slicer" section of AppConfig:
      *   ai_slicer/provider, ai_slicer/gateway_url (-> base_url),
      *   ai_slicer/api_key, ai_slicer/model.
+     *
+     * Reads through the typed accessors in AISlicerConfig.hpp, so the provider
+     * key is normalised and the model falls back to the provider default.
      */
     static AIConfig config_from_app_config(const AppConfig &app_config);
 };
