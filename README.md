@@ -229,36 +229,6 @@ OrcaSlicer began in that same spirit, drawing from BambuStudio, PrusaSlicer, and
 
 The OrcaSlicer logo was designed by community member [Justin Levine](https://github.com/jal-co).
 
-<!-- ai-template:narrative:start -->
-## The Totally True and Not At All Embellished History of OrcaSlicer
-
-### The continuing adventures of Jordan Hubbard and Sir Reginald von Fluffington III
-
-> *Part 21 of an ongoing chronicle. [← Part 20: Orca-Flashforge](https://github.com/jordanhubbard/Orca-Flashforge#the-totally-true-and-not-at-all-embellished-history-of-orca-flashforge)*
-> *[Chronicle index](https://github.com/jordanhubbard/ai-template/blob/main/CHRONICLE.md) · Ordered by first recorded AI-assisted commit.*
-
-The programmer had a slicer, a printer, and an idea about an object. He wished to reduce the amount of explanation required between these three things.
-
-Sir Reginald von Fluffington III reduced the distance between objects by pushing them together. It was an effective method, though difficult to encode as a reusable manufacturing process.
-
-This chapter belongs to the programmer's OrcaSlicer fork and its AI-assisted additions. OrcaSlicer itself, its community, and its long upstream lineage already existed. The programmer's contribution was another experiment at the edge: could a description become useful parametric geometry inside the slicer?
-
-The provider interface had to accommodate different model services. Settings had to identify a provider, endpoint, credential, and model. The request needed context about the printer and the current job. The result needed to become a model on the plate, not merely a paragraph in which a model expressed confidence that a model could be made.
-
-Sir Reginald studied this ambiguity and declined to join the naming committee.
-
-Primitives and constructive solid geometry supplied a bounded vocabulary. Structured tool calls made that vocabulary more reliable than hoping free-form prose would accidentally constitute an object. A self-repair loop could respond to generation failures. Geometry repair could address some invalid meshes. The documentation still needed to say what kind of shapes the feature could realistically produce.
-
-“It is parametric generation,” the programmer said, “not a promise that every sentence becomes anything you can imagine.”
-
-Sir Reginald imagined dinner. No mesh appeared.
-
-Generation moved off the user-interface thread so a slow response would not turn the application into a still life. The settings settled into the application's existing preferences. Model search acquired its own limits and diagnostics. Each adjustment made the feature a little less like a demonstration pasted onto a slicer and a little more like something a person could use while preparing a print.
-
-The programmer called this elegant. Sir Reginald withheld endorsement, citing insufficient tuna and a provider interface with no support for the highly reliable household protocol of staring at the cupboard until it opened.
-
-<!-- ai-template:narrative:end -->
-
 # License
 
 - **OrcaSlicer** is licensed under the GNU Affero General Public License, version 3.
